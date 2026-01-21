@@ -1,3 +1,4 @@
+<FILE_CONTENT>
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -82,6 +83,26 @@
         .msg-bubble.transfer { background: #fa9d3b !important; color: white !important; width: 220px; padding: 15px; display: flex; flex-direction: column; }
         .transfer-icon { font-size: 24px; margin-bottom: 5px; display: flex; align-items: center; gap: 10px; }
         .transfer-amount { font-size: 20px; font-weight: bold; }
+
+        /* 新增功能样式 */
+        .msg-bubble.voice { display: flex; align-items: center; gap: 10px; min-width: 100px; cursor: pointer; background: #fff !important; color: #333 !important; border: 1px solid #eee; }
+        .msg-row.user .msg-bubble.voice { background: #95ec69 !important; border: none; }
+        .voice-icon { font-size: 16px; transform: rotate(90deg); }
+
+        .msg-bubble.photo-card { background: #000 !important; color: #000; width: 200px; height: 150px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; overflow: hidden; border: 1px solid #333; border-radius: 10px; }
+        .msg-bubble.photo-card.revealed { background: #fff !important; color: #333 !important; border: 1px solid #ccc; }
+        .photo-card-text { display: none; padding: 10px; font-size: 14px; text-align: center; }
+        .msg-bubble.photo-card.revealed .photo-card-text { display: block; }
+        .photo-card-hint { color: #555; font-size: 12px; display: flex; flex-direction: column; align-items: center; color: white; }
+        .msg-bubble.photo-card.revealed .photo-card-hint { display: none; }
+
+        .msg-bubble.gift { background: #ff6b6b !important; color: white !important; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 120px; height: 120px; cursor: pointer; border-radius: 12px; }
+        .msg-bubble.gift.opened { background: #fff !important; color: #333 !important; border: 2px solid #ff6b6b; }
+        .gift-icon { font-size: 30px; margin-bottom: 5px; }
+
+        .msg-bubble.food { background: white !important; border: 1px solid #ddd; border-radius: 12px; padding: 15px; width: 220px; display: flex; justify-content: space-between; align-items: center; color: #333 !important; }
+        .food-name { font-weight: bold; }
+        .food-price { font-weight: bold; color: #333; }
 
         .quote-container { background: #f2f2f2; padding: 8px; border-radius: 8px; font-size: 12px; color: #666; margin: 0 10px 10px 10px; border-left: 3px solid var(--primary-color); display: none; }
         .quote-container.show { display: block; }
@@ -352,11 +373,11 @@
             </div>
             <!-- 扩展面板 -->
             <div id="expand-panel" class="expand-panel">
-                <div class="expand-item">
+                <div class="expand-item" onclick="openVoiceModal()">
                     <div class="expand-icon-box"><i class="fas fa-microphone"></i></div>
                     <span>语音</span>
                 </div>
-                <div class="expand-item">
+                <div class="expand-item" onclick="openPhotoGenModal()">
                     <div class="expand-icon-box"><i class="fas fa-image"></i></div>
                     <span>照片</span>
                 </div>
@@ -364,11 +385,11 @@
                     <div class="expand-icon-box"><i class="fas fa-exchange-alt"></i></div>
                     <span>转账</span>
                 </div>
-                <div class="expand-item">
+                <div class="expand-item" onclick="openGiftModal()">
                     <div class="expand-icon-box"><i class="fas fa-gift"></i></div>
                     <span>礼物</span>
                 </div>
-                <div class="expand-item">
+                <div class="expand-item" onclick="openFoodModal()">
                     <div class="expand-icon-box"><i class="fas fa-hamburger"></i></div>
                     <span>外卖</span>
                 </div>
@@ -536,8 +557,8 @@
                 <input type="text" id="wi-group" class="form-input" placeholder="例如: 魔法、地理">
             </div>
             <div class="input-group">
-                <label>关键词 (触发词)</label>
-                <input type="text" id="wi-keyword" class="form-input" placeholder="例如: 火球术">
+                <label>关键词 (选填，留空则一直触发)</label>
+                <input type="text" id="wi-keyword" class="form-input" placeholder="留空默认生效">
             </div>
             <div class="input-group">
                 <label>内容</label>
@@ -572,6 +593,74 @@
             <div style="display:flex; gap:10px; margin-top:10px;">
                 <button class="btn-primary" onclick="publishPost()">发布</button>
                 <button class="btn-primary" style="background:#ff6b6b;" onclick="closeModal('modal-post')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 弹窗：语音 -->
+    <div id="modal-voice" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">发送语音</div>
+            <div class="input-group">
+                <label>文字转语音内容</label>
+                <textarea id="voice-text" class="form-input" rows="3" placeholder="输入要说的内容..."></textarea>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn-primary" onclick="sendVoice()">发送</button>
+                <button class="btn-primary" style="background:#ff6b6b;" onclick="closeModal('modal-voice')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 弹窗：照片 -->
+    <div id="modal-photo-gen" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">发送照片卡片</div>
+            <div class="input-group">
+                <label>照片描述/内容</label>
+                <textarea id="photo-gen-text" class="form-input" rows="3" placeholder="输入描述，点击后显示..."></textarea>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn-primary" onclick="sendPhotoGen()">发送</button>
+                <button class="btn-primary" style="background:#ff6b6b;" onclick="closeModal('modal-photo-gen')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 弹窗：礼物 -->
+    <div id="modal-gift" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">赠送礼物</div>
+            <div class="input-group">
+                <label>礼物名称</label>
+                <input type="text" id="gift-name" class="form-input" placeholder="例如: 鲜花、巧克力">
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn-primary" onclick="sendGift()">赠送</button>
+                <button class="btn-primary" style="background:#ff6b6b;" onclick="closeModal('modal-gift')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 弹窗：外卖 -->
+    <div id="modal-food" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">订购外卖</div>
+            <div class="input-group">
+                <label>商品名称</label>
+                <input type="text" id="food-name" class="form-input" placeholder="例如: 炸鸡套餐">
+            </div>
+            <div class="input-group">
+                <label>金额</label>
+                <input type="number" id="food-price" class="form-input" placeholder="0.00">
+            </div>
+            <div class="input-group">
+                <label>支付卡片</label>
+                <select id="food-card-select" class="form-input"></select>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn-primary" onclick="sendFood()">支付并订购</button>
+                <button class="btn-primary" style="background:#ff6b6b;" onclick="closeModal('modal-food')">取消</button>
             </div>
         </div>
     </div>
@@ -951,6 +1040,69 @@
             renderWallet();
         }
 
+        // --- 扩展功能函数 ---
+        function openVoiceModal() { document.getElementById('modal-voice').classList.add('show'); }
+        function sendVoice() {
+            const text = document.getElementById('voice-text').value;
+            if(!text) return;
+            state.chats[currentChatCharId].push({ role: 'user', type: 'voice', content: text });
+            store.set('chats', state.chats);
+            closeModal('modal-voice');
+            document.getElementById('voice-text').value = '';
+            renderChatMessages(); scrollToBottom();
+        }
+
+        function openPhotoGenModal() { document.getElementById('modal-photo-gen').classList.add('show'); }
+        function sendPhotoGen() {
+            const text = document.getElementById('photo-gen-text').value;
+            if(!text) return;
+            state.chats[currentChatCharId].push({ role: 'user', type: 'photo_card', content: text, isRevealed: false });
+            store.set('chats', state.chats);
+            closeModal('modal-photo-gen');
+            document.getElementById('photo-gen-text').value = '';
+            renderChatMessages(); scrollToBottom();
+        }
+
+        function openGiftModal() { document.getElementById('modal-gift').classList.add('show'); }
+        function sendGift() {
+            const name = document.getElementById('gift-name').value;
+            if(!name) return;
+            state.chats[currentChatCharId].push({ role: 'user', type: 'gift', content: name, status: 'unopened' });
+            store.set('chats', state.chats);
+            closeModal('modal-gift');
+            document.getElementById('gift-name').value = '';
+            renderChatMessages(); scrollToBottom();
+        }
+
+        function openFoodModal() {
+            if(state.wallet.length === 0) return alert('请先去钱包添加卡片');
+            const select = document.getElementById('food-card-select');
+            select.innerHTML = state.wallet.map(c => `<option value="${c.id}">尾号${c.no.slice(-4)} (余额: ${c.bal.toFixed(2)})</option>`).join('');
+            document.getElementById('modal-food').classList.add('show');
+        }
+        function sendFood() {
+            const name = document.getElementById('food-name').value;
+            const price = parseFloat(document.getElementById('food-price').value);
+            const cardId = parseInt(document.getElementById('food-card-select').value);
+            if(!name || isNaN(price) || price <= 0) return alert('信息无效');
+            
+            const card = state.wallet.find(c => c.id === cardId);
+            if(!card) return alert('卡片无效');
+            if(card.bal < price) return alert('余额不足');
+
+            card.bal -= price;
+            card.transactions.push({ title: '外卖支出', time: new Date().toLocaleString(), amount: '-' + price.toFixed(2) });
+            store.set('wallet', state.wallet);
+
+            state.chats[currentChatCharId].push({ role: 'user', type: 'food', content: name, price: price.toFixed(2) });
+            store.set('chats', state.chats);
+            closeModal('modal-food');
+            document.getElementById('food-name').value = '';
+            document.getElementById('food-price').value = '';
+            renderChatMessages(); scrollToBottom();
+            renderWallet();
+        }
+
         // --- 聊天功能 ---
         let currentChatCharId = null;
 
@@ -968,7 +1120,7 @@
                 let lastMsg = "点击进入聊天...";
                 if(history.length > 0) {
                     const m = history[history.length - 1];
-                    lastMsg = m.type === 'image' ? '[图片]' : (m.type === 'transfer' ? '[转账]' : m.content);
+                    lastMsg = m.type === 'image' ? '[图片]' : (m.type === 'transfer' ? '[转账]' : (m.type === 'voice' ? '[语音]' : m.content));
                 }
                 return `
                     <div class="chat-item" onclick="openChatWindow('${char.id}')">
@@ -1015,23 +1167,51 @@
             const userAvatar = state.config.myAvatar || 'https://ui-avatars.com/api/?name=Me';
 
             container.innerHTML = history.map((msg, idx) => {
+                let contentHtml = '';
+                
                 if(msg.type === 'revoked') {
-                    return `
-                        <div class="msg-row ${msg.role === 'user' ? 'user' : 'ai'}" onclick="alert('撤回的内容: ${msg.original}')">
-                            ${msg.role === 'assistant' ? `<img src="${char.avatar}" class="avatar" style="width:35px;height:35px;margin-right:10px;">` : `<img src="${userAvatar}" class="avatar">`}
-                            <div class="msg-bubble revoked">消息已撤回 (点击查看)</div>
+                    contentHtml = `<div class="msg-bubble revoked">消息已撤回 (点击查看)</div>`;
+                }
+                else if(msg.type === 'transfer') {
+                    contentHtml = `
+                        <div class="msg-bubble transfer">
+                            <div class="transfer-icon"><i class="fas fa-check-circle"></i> 转账成功</div>
+                            <div class="transfer-amount">¥ ${msg.amount}</div>
                         </div>`;
                 }
-                if(msg.type === 'transfer') {
-                    return `
-                        <div class="msg-row user" onclick="handleMsgClick(${idx}, '${msg.role}')" oncontextmenu="return false;">
-                            <img src="${userAvatar}" class="avatar">
-                            <div class="msg-bubble transfer">
-                                <div class="transfer-icon"><i class="fas fa-check-circle"></i> 转账成功</div>
-                                <div class="transfer-amount">¥ ${msg.amount}</div>
-                            </div>
+                else if(msg.type === 'voice') {
+                    contentHtml = `
+                        <div class="msg-bubble voice" onclick="event.stopPropagation(); alert('播放语音: ${msg.content}')">
+                            <i class="fas fa-wifi voice-icon"></i> 
+                            <span style="font-size:12px; margin-left:5px;">${msg.content.length}"</span>
                         </div>`;
                 }
+                else if(msg.type === 'photo_card') {
+                    contentHtml = `
+                        <div class="msg-bubble photo-card ${msg.isRevealed ? 'revealed' : ''}">
+                            <div class="photo-card-hint"><i class="fas fa-image" style="font-size:24px; margin-bottom:5px;"></i>点击查看</div>
+                            <div class="photo-card-text">${msg.content}</div>
+                        </div>`;
+                }
+                else if(msg.type === 'gift') {
+                    contentHtml = `
+                        <div class="msg-bubble gift ${msg.status==='opened' ? 'opened' : ''}">
+                            <i class="fas fa-gift gift-icon"></i>
+                            <div style="font-size:12px;">${msg.status==='opened' ? msg.content : '收到礼物'}</div>
+                        </div>`;
+                }
+                else if(msg.type === 'food') {
+                    contentHtml = `
+                        <div class="msg-bubble food">
+                            <div class="food-name">${msg.content}</div>
+                            <div class="food-price">¥${msg.price}</div>
+                        </div>`;
+                }
+                else {
+                    contentHtml = `<div class="msg-bubble">${msg.content}</div>`;
+                }
+
+                // 包装行
                 return `
                 <div class="msg-row ${msg.role === 'user' ? 'user' : 'ai'}" onclick="handleMsgClick(${idx}, '${msg.role}')" oncontextmenu="return false;">
                     ${msg.role === 'assistant' 
@@ -1040,25 +1220,41 @@
                     }
                     <div style="display:flex; flex-direction:column; align-items:${msg.role==='user'?'flex-end':'flex-start'};">
                         ${msg.quote ? `<div style="font-size:10px; color:#999; margin-bottom:2px; background:#eee; padding:2px 5px; border-radius:4px;">引用: ${msg.quote}</div>` : ''}
-                        <div class="msg-bubble">${msg.content}</div>
+                        ${contentHtml}
                     </div>
                 </div>
             `}).join('');
         }
 
-        // 消息气泡点击逻辑：双击触发菜单
+        // 消息气泡点击逻辑：双击触发菜单，单击触发交互(礼物/卡片)
         let msgClickTimer = null;
         function handleMsgClick(idx, role) {
             if(msgClickTimer) {
                 clearTimeout(msgClickTimer);
                 msgClickTimer = null;
-                // Double Click
+                // Double Click -> Menu
                 activeMsgId = idx;
                 document.getElementById('overlay-mask').style.display = 'block';
                 document.getElementById('sheet-msg-actions').classList.add('show');
                 document.getElementById('action-regenerate').style.display = (role === 'assistant') ? 'block' : 'none';
             } else {
-                msgClickTimer = setTimeout(() => { msgClickTimer = null; }, 250);
+                msgClickTimer = setTimeout(() => { 
+                    msgClickTimer = null; 
+                    // Single Click Logic
+                    const history = state.chats[currentChatCharId];
+                    if(!history || !history[idx]) return;
+                    const msg = history[idx];
+                    
+                    if(msg.type === 'gift' && msg.status !== 'opened') {
+                        msg.status = 'opened';
+                        store.set('chats', state.chats);
+                        renderChatMessages();
+                    } else if(msg.type === 'photo_card') {
+                        msg.isRevealed = !msg.isRevealed;
+                        store.set('chats', state.chats);
+                        renderChatMessages();
+                    }
+                }, 250);
             }
         }
         
@@ -1141,6 +1337,10 @@
             const validHistory = history.map(m => {
                 if(m.type === 'revoked') return { role: m.role, content: "[User revoked a message]" };
                 if(m.type === 'transfer') return { role: m.role, content: `[User transferred ¥${m.amount}]` };
+                if(m.type === 'voice') return { role: m.role, content: `[User sent voice message: ${m.content}]` };
+                if(m.type === 'photo_card') return { role: m.role, content: `[User sent a mystery photo card: ${m.content}]` };
+                if(m.type === 'gift') return { role: m.role, content: `[User sent a gift: ${m.content}]` };
+                if(m.type === 'food') return { role: m.role, content: `[User ordered food: ${m.content}]` };
                 return { role: m.role, content: m.content };
             });
 
@@ -1149,9 +1349,10 @@
             // 获取角色专属世界书
             const charWI = state.worldInfo.filter(wi => wi.scope === currentChatCharId);
             
+            // 关键词留空即一直生效，这里逻辑不变，因为我们直接发送了所有相关的WI给AI，由AI决定是否参考。
             const wiText = [...globalWI, ...charWI].map(wi => `<entry key="${wi.keyword}" group="${wi.group||''}">${wi.content}</entry>`).join('\n');
             
-            // 提示词：强制要求读取人设、全局WI、角色WI
+            // 提示词：增加对扩展功能的说明
             const systemPrompt = `
                 【Instructions】
                 You must strictly follow the character persona and read all World Info provided below.
@@ -1163,6 +1364,13 @@
                 Name: ${char.name}
                 Description: ${char.prompt}
                 
+                【Interactive Capabilities】
+                You can interact with the user using special tags in your response (only use one per message if needed):
+                [VOICE: message text] - Send a voice message.
+                [PHOTO: description text] - Send a mystery photo card (black surface, reveals text when clicked).
+                [GIFT: item name] - Send a gift box to the user.
+                [FOOD: item name | price] - Send a food delivery bubble (e.g. [FOOD: Burger | 20.00]).
+
                 Instruction: Roleplay as ${char.name}. Stay in character. Respond in the language of the user. Be concise.
                 If you see "[User revoked a message]", it means the user deleted something.
             `;
@@ -1193,7 +1401,23 @@
                 }
 
                 const aiContent = data.choices[0].message.content;
-                state.chats[currentChatCharId].push({ role: 'assistant', content: aiContent });
+                
+                // 解析 AI 返回的特殊标签
+                let finalType = 'text';
+                let finalContent = aiContent;
+                let extraData = {};
+
+                const voiceMatch = aiContent.match(/^\[VOICE:\s*(.*?)\]$/);
+                const photoMatch = aiContent.match(/^\[PHOTO:\s*(.*?)\]$/);
+                const giftMatch = aiContent.match(/^\[GIFT:\s*(.*?)\]$/);
+                const foodMatch = aiContent.match(/^\[FOOD:\s*(.*?)\s*\|\s*(.*?)\]$/);
+
+                if (voiceMatch) { finalType = 'voice'; finalContent = voiceMatch[1]; }
+                else if (photoMatch) { finalType = 'photo_card'; finalContent = photoMatch[1]; extraData = { isRevealed: false }; }
+                else if (giftMatch) { finalType = 'gift'; finalContent = giftMatch[1]; extraData = { status: 'unopened' }; }
+                else if (foodMatch) { finalType = 'food'; finalContent = foodMatch[1]; extraData = { price: foodMatch[2] }; }
+
+                state.chats[currentChatCharId].push({ role: 'assistant', type: finalType, content: finalContent, ...extraData });
                 store.set('chats', state.chats);
                 renderChatMessages();
                 scrollToBottom();
@@ -1335,6 +1559,7 @@
             if(existingIdx > -1) state.characters[existingIdx] = newChar; else state.characters.push(newChar);
             store.set('chars', state.characters); closeModal('modal-character'); renderContacts();
         }
+
         function openWorldInfoModal() { document.getElementById('modal-worldinfo').classList.add('show'); }
         
         function saveWorldInfo() { 
@@ -1342,15 +1567,20 @@
             const content = document.getElementById('wi-content').value;
             const scope = document.getElementById('wi-scope').value;
             const group = document.getElementById('wi-group').value.trim(); // 获取分组
-            if(!keyword || !content) return;
+            if(!content) return alert('内容不能为空'); // 关键词不再是必填
             state.worldInfo.push({ id: Date.now(), keyword, content, scope, group }); 
             store.set('worldInfo', state.worldInfo); 
+            // 清空输入框
+            document.getElementById('wi-keyword').value = '';
+            document.getElementById('wi-content').value = '';
+            document.getElementById('wi-group').value = '';
             closeModal('modal-worldinfo'); 
             renderWorldInfoList();
         }
 
         function renderWorldInfoList() { 
             const container = document.getElementById('world-info-list');
+            if(!container) return;
             
             // 分组逻辑
             const groups = {};
@@ -1379,7 +1609,7 @@
             html += '<div style="display:flex; flex-wrap:wrap;">';
             ungrouped.forEach(wi => {
                 const scopeName = wi.scope === 'global' ? '全局' : (state.characters.find(c=>c.id === wi.scope)?.name || '未知');
-                html += `<div class="capsule active" onclick="deleteWorldInfo(${wi.id})">${scopeName}: ${wi.keyword} <i class="fas fa-times" style="margin-left:5px;"></i></div>`;
+                html += `<div class="capsule active" onclick="deleteWorldInfo(${wi.id})">${scopeName}: ${wi.keyword || '常驻'} <i class="fas fa-times" style="margin-left:5px;"></i></div>`;
             });
             html += '</div>';
 
@@ -1394,7 +1624,7 @@
             
             container.innerHTML = list.map(wi => {
                 const scopeName = wi.scope === 'global' ? '全局' : (state.characters.find(c=>c.id === wi.scope)?.name || '未知');
-                return `<div class="capsule active" onclick="deleteWorldInfo(${wi.id})">${scopeName}: ${wi.keyword} <i class="fas fa-times" style="margin-left:5px;"></i></div>`;
+                return `<div class="capsule active" onclick="deleteWorldInfo(${wi.id})">${scopeName}: ${wi.keyword || '常驻'} <i class="fas fa-times" style="margin-left:5px;"></i></div>`;
             }).join('');
             
             document.getElementById('modal-wi-group-view').classList.add('show');
@@ -1431,3 +1661,4 @@
     </script>
 </body>
 </html>
+</FILE_CONTENT>
