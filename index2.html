@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="小简聊天">
+    
+    <link rel="icon" href="https://i.postimg.cc/pXSsCHz6/9D531540-D460-4C2C-BA0D-93E2ED5D0E59.jpg">
+    <link rel="apple-touch-icon" href="https://i.postimg.cc/pXSsCHz6/9D531540-D460-4C2C-BA0D-93E2ED5D0E59.jpg">
+    
+    <title>小简聊天</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style id="core-style">
+        body { background-color: #ffffff; color: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; overflow: hidden; }
+        .app-container { max-width: 480px; margin: 0 auto; background: #fff; height: 100vh; display: flex; flex-direction: column; position: relative; }
+        .safe-top { padding-top: env(safe-area-inset-top); }
+        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+        .header-bar { height: calc(3.5rem + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); display: flex; align-items: center; flex-shrink: 0; }
+        .scroll-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .swipe-item-wrapper { position: relative; overflow: hidden; transition: all 0.2s; }
+        .swipe-content { position: relative; z-index: 10; background: white; transition: transform 0.2s ease-out; }
+        .swipe-actions { position: absolute; right: 0; top: 0; bottom: 0; display: flex; z-index: 0; }
+        .swipe-btn { display: flex; items-center: center; justify-content: center; width: 70px; color: white; font-weight: bold; font-size: 14px; height: 100%; display: flex; align-items: center; justify-content: center; }
+        .swipe-btn.top { background-color: #fbbf24; }
+        .swipe-btn.del { background-color: #ef4444; }
+
+        .card-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding: 20px 0; }
+        .bank-card { flex: 0 0 85%; margin: 0 5%; scroll-snap-align: center; border-radius: 12px; height: 180px; position: relative; color: white; padding: 24px; background: #1a1a1a; box-shadow: 0 8px 20px rgba(0,0,0,0.15); transition: transform 0.2s; }
+        
+        /* 气泡样式 */
+        .bubble-me { background: #000; color: #fff; border-radius: 18px 18px 4px 18px; }
+        .bubble-other { background: #f0f0f0; color: #000; border-radius: 18px 18px 18px 4px; }
+        .quote-block { border-left: 2px solid #8e8e8e; padding-left: 8px; margin-bottom: 4px; font-size: 12px; opacity: 0.7; }
+        
+        /* 名片样式 (转账/礼物) */
+        .msg-card { background: #fff; border: 1px solid #eee; border-radius: 12px; overflow: hidden; width: 220px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); cursor: pointer; display: flex; flex-direction: column; }
+        .msg-card-top { padding: 12px; display: flex; gap: 10px; align-items: center; background: #fff; }
+        .msg-card-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; items-center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+        .msg-card-content { flex: 1; min-width: 0; }
+        .msg-card-title { font-size: 14px; font-weight: bold; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .msg-card-desc { font-size: 12px; opacity: 0.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .msg-card-bottom { padding: 8px 12px; font-size: 10px; opacity: 0.5; border-top: 1px solid #f5f5f5; display: flex; justify-content: space-between; align-items: center; background: #fafafa; }
+        
+        /* 黑色主题名片 (转账) */
+        .msg-card.black-theme { background: #1a1a1a; border-color: #333; color: white; }
+        .msg-card.black-theme .msg-card-top { background: #1a1a1a; }
+        .msg-card.black-theme .msg-card-bottom { background: #252525; border-top-color: #333; color: #888; }
+        .msg-card.black-theme .msg-card-desc { color: #aaa; opacity: 1; }
+
+        /* 图片占位符 */
+        .msg-photo-square { width: 120px; height: 120px; background-color: #f3f4f6; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+        #photo-placeholder-style { background-image: url('https://placehold.co/200x200/e2e8f0/94a3b8?text=PHOTO'); background-size: cover; width: 100%; height: 100%; }
+        
+        /* 语音声浪 - 静态化 */
+        .msg-voice-wave { display: flex; gap: 4px; align-items: center; cursor: pointer; padding: 4px 0; }
+        
+        /* 撤回小框 */
+        .msg-retracted { font-size: 10px; color: #9ca3af; background: #fff; border: 1px solid #e5e7eb; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin: 0 auto; display: inline-block; }
+
+        .file-input { display: none; }
+        .animate-slide-up { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+        /* 全局输入框黑边框 */
+        input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), textarea, select, .input-std {
+            border: 1px solid #000 !important;
+            border-radius: 6px;
+            padding: 8px;
+            outline: none;
+        }
+        .input-std { width: 100%; background: #fff; font-size: 14px; }
+        .input-std:focus { border-width: 2px !important; }
+        
+        /* 搜索框特殊处理，避免双重边框 */
+        .search-bar input { border: none !important; padding: 0; }
+    </style>
+    <!-- 全局自定义样式 -->
+    <style id="custom-css-block"></style>
+    <!-- 角色专属气泡样式 (放在后面以覆盖全局设置) -->
+    <style id="char-custom-css"></style>
+</head>
+<body>
+
+<div id="app" class="app-container">
+
+    <!-- ================= 顶栏 ================= -->
+    <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-gray-100 px-4 header-bar justify-between" v-if="currentPage !== 'chat_detail'">
+        <div class="font-bold text-xl tracking-tight" v-if="!currentSubPage">{{ tabTitles[currentTab] }}</div>
+        <div v-else class="flex items-center text-black cursor-pointer font-bold" @click="goBack">
+            <i class="fas fa-arrow-left mr-4 text-lg"></i> {{ subPageTitle }}
+        </div>
+        <div class="flex gap-4 text-xl">
+            <i v-if="currentTab === 'chat' && !currentSubPage" @click="showAddCharacterModal = true" class="fas fa-plus-square cursor-pointer"></i>
+            <i v-if="currentTab === 'moments' && !currentSubPage" @click="openAddMoment" class="far fa-plus-square cursor-pointer"></i>
+            <div v-if="currentSubPage === 'wallet'" class="flex gap-4 items-center">
+                 <button @click="showRechargeModal = true" class="text-xs font-bold border border-black rounded px-2 py-1">充值</button>
+                 <i @click="showAddCardModal = true" class="fas fa-plus cursor-pointer"></i>
+            </div>
+            <i v-if="currentSubPage === 'stickers'" @click="showAddStickerModal = true" class="fas fa-plus cursor-pointer"></i>
+            <i v-if="currentSubPage === 'worldbook'" @click="showAddWorldBookModal = true" class="fas fa-plus cursor-pointer"></i>
+        </div>
+    </div>
+
+    <!-- ================= 内容区域 ================= -->
+    <div class="scroll-content bg-white" v-if="currentPage !== 'chat_detail'">
+        <!-- 聊天列表 -->
+        <div v-if="currentTab === 'chat' && !currentSubPage" class="pb-20">
+            <div v-for="char in sortedCharacters" :key="char.id" class="swipe-item-wrapper border-b border-gray-50">
+                <div class="swipe-actions">
+                    <div @click="togglePin(char)" class="swipe-btn top">{{ char.isPinned ? '取消' : '置顶' }}</div>
+                    <div @click="deleteCharacter(char.id)" class="swipe-btn del">删除</div>
+                </div>
+                <div class="swipe-content p-4 flex items-center bg-white"
+                     @touchstart="touchStart($event, char)"
+                     @touchmove="touchMove($event, char)"
+                     @touchend="touchEnd($event, char)"
+                     @click="openChat(char)"
+                     :style="{ transform: `translateX(${char.swipeOffset || 0}px)` }">
+                    <div class="relative w-14 h-14 mr-3 shrink-0">
+                        <img :src="char.avatar || defaultAvatar" class="w-14 h-14 rounded-full object-cover border border-gray-200">
+                        <div v-if="char.isPinned" class="absolute -top-1 -right-1 bg-yellow-400 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]"><i class="fas fa-thumbtack"></i></div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-baseline mb-1">
+                            <span class="font-bold text-sm">{{ char.name }}</span>
+                            <span class="text-xs text-gray-400">刚刚</span>
+                        </div>
+                        <div class="text-sm text-gray-500 truncate">{{ char.lastMessage || '点击开始聊天' }}</div>
+                    </div>
+                </div>
+            </div>
+            <div v-if="characters.length === 0" class="flex flex-col items-center justify-center h-64 text-gray-400">
+                <i class="far fa-comments text-4xl mb-2"></i><span class="text-sm">暂无消息</span>
+            </div>
+        </div>
+
+        <!-- 朋友圈 -->
+        <div v-if="currentTab === 'moments' && !currentSubPage" class="pb-20">
+            <div class="relative h-64 bg-gray-100 mb-8">
+                 <img :src="userProfile.bgImage || defaultBg" class="w-full h-full object-cover brightness-90">
+                 <label class="absolute top-4 right-4 bg-black/50 text-white rounded-full p-2 cursor-pointer z-10 safe-top mt-2">
+                     <i class="fas fa-camera"></i><input type="file" class="file-input" @change="(e) => handleImageUpload(e, (url) => userProfile.bgImage = url)">
+                 </label>
+                 <div class="absolute bottom-[-20px] right-4 flex items-end gap-3">
+                     <div class="text-white font-bold mb-8 text-shadow text-lg">{{ userProfile.name || '我' }}</div>
+                     <img :src="userProfile.avatar || defaultAvatar" class="w-20 h-20 rounded-lg border-2 border-white bg-white object-cover shadow-sm">
+                 </div>
+            </div>
+            <div class="px-4 space-y-8">
+                <div v-for="(moment, mIndex) in moments" :key="moment.id" class="flex gap-3">
+                    <img :src="moment.avatar" class="w-10 h-10 rounded-lg bg-gray-200 flex-shrink-0 object-cover">
+                    <div class="flex-1">
+                        <div class="flex justify-between items-start">
+                            <div class="font-bold text-sm mb-1 text-gray-900">{{ moment.name }}</div>
+                            <div class="relative">
+                                <button @click="moment.showEditMenu = !moment.showEditMenu" class="text-gray-400 px-2"><i class="fas fa-ellipsis-v"></i></button>
+                                <div v-if="moment.showEditMenu" class="absolute right-0 top-6 bg-white shadow-lg border rounded z-20 w-24">
+                                    <button @click="editMoment(mIndex)" class="block w-full text-left px-3 py-2 text-xs hover:bg-gray-50">编辑</button>
+                                    <button @click="deleteMoment(mIndex)" class="block w-full text-left px-3 py-2 text-xs text-red-500 hover:bg-gray-50">删除</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-400 mb-1" v-if="moment.visibility === 'char'"><i class="fas fa-lock"></i> 仅 {{ getCharName(moment.targetCharId) }} 可见</div>
+                        <div class="text-sm text-gray-800 leading-relaxed mb-2 whitespace-pre-wrap">{{ moment.content }}</div>
+                        <div v-if="moment.images && moment.images.length" class="grid gap-1 mb-2 max-w-[240px]" :class="moment.images.length === 1 ? 'grid-cols-1' : 'grid-cols-3'">
+                            <img v-for="(img, idx) in moment.images" :key="idx" :src="img" :class="['bg-gray-100 object-cover', moment.images.length === 1 ? 'w-48 h-auto rounded' : 'w-20 h-20 rounded-sm']">
+                        </div>
+                        <div class="flex justify-between items-center mt-2 mb-3">
+                            <span class="text-xs text-gray-400">{{ moment.time }}</span>
+                            <div class="flex gap-4 text-gray-600">
+                                 <i class="cursor-pointer hover:text-red-500 transition" :class="moment.hasLiked ? 'fas fa-heart text-red-500' : 'far fa-heart'" @click="toggleLike(mIndex)"></i>
+                                 <i class="far fa-comment cursor-pointer hover:text-black" @click="prepareComment(mIndex)"></i>
+                            </div>
+                        </div>
+                        <div v-if="moment.likes.length > 0 || moment.comments.length > 0" class="bg-gray-50 rounded p-2 text-xs text-gray-600">
+                            <div v-if="moment.likes.length" class="flex items-center gap-1 mb-1"><i class="fas fa-heart text-xs text-gray-400"></i><span class="font-bold">{{ moment.likes.join(', ') }}</span></div>
+                            <div v-for="(comment, cIndex) in moment.comments" :key="cIndex" class="py-0.5"><span class="font-bold text-black">{{ comment.user }}</span>: {{ comment.text }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 我的页面 -->
+        <div v-if="currentTab === 'profile' && !currentSubPage" class="p-5 space-y-6 pb-20">
+            <div class="flex flex-col items-center">
+                <div class="relative group cursor-pointer mb-3">
+                    <img :src="userProfile.avatar || defaultAvatar" class="w-24 h-24 rounded-full border border-gray-200 object-cover">
+                    <div class="absolute bottom-0 right-0 bg-black text-white rounded-full w-8 h-8 flex items-center justify-center border-2 border-white">
+                        <label class="flex items-center justify-center w-full h-full cursor-pointer"><i class="fas fa-camera text-xs"></i><input type="file" @change="(e) => handleImageUpload(e, (url) => userProfile.avatar = url)" class="file-input" accept="image/*"></label>
+                    </div>
+                </div>
+                <div class="text-center w-full">
+                    <input v-model="userProfile.name" class="font-bold text-xl text-center bg-transparent outline-none w-full mb-1" placeholder="点击设置昵称" style="border:none!important">
+                    <div class="flex items-center justify-center text-gray-500 text-sm"><span>微信号: </span><input v-model="userProfile.wechatId" class="bg-transparent outline-none w-32 ml-1 text-gray-500" placeholder="点击设置ID" style="border:none!important"></div>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <div @click="goToSubPage('worldbook', '世界书')" class="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100"><div class="flex items-center gap-3"><div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-blue-500"><i class="fas fa-book-atlas"></i></div><span class="font-medium">世界书</span></div><i class="fas fa-chevron-right text-xs text-gray-300"></i></div>
+                <div @click="goToSubPage('api', 'API设置')" class="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100"><div class="flex items-center gap-3"><div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-black"><i class="fas fa-server"></i></div><span class="font-medium">API 设置</span></div><i class="fas fa-chevron-right text-xs text-gray-300"></i></div>
+                <div @click="goToSubPage('style', '样式美化')" class="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100"><div class="flex items-center gap-3"><div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-purple-500"><i class="fas fa-paint-brush"></i></div><span class="font-medium">样式美化</span></div><i class="fas fa-chevron-right text-xs text-gray-300"></i></div>
+                <div @click="goToSubPage('stickers', '表情包')" class="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100"><div class="flex items-center gap-3"><div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-yellow-500"><i class="far fa-laugh-wink"></i></div><span class="font-medium">表情包</span></div><i class="fas fa-chevron-right text-xs text-gray-300"></i></div>
+                <div @click="goToSubPage('wallet', '钱包')" class="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100"><div class="flex items-center gap-3"><div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-green-500"><i class="fas fa-wallet"></i></div><span class="font-medium">钱包</span></div><i class="fas fa-chevron-right text-xs text-gray-300"></i></div>
+                <div @click="goToSubPage('shopping', '购物')" class="flex items-center justify-between p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100"><div class="flex items-center gap-3"><div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-pink-500"><i class="fas fa-shopping-bag"></i></div><span class="font-medium">购物</span></div><i class="fas fa-chevron-right text-xs text-gray-300"></i></div>
+            </div>
+        </div>
+
+        <div v-if="currentSubPage === 'wallet'" class="h-full flex flex-col pb-20 bg-gray-50">
+            <div class="card-slider pt-6" id="cardSlider" @scroll="onCardScroll">
+                <div v-for="(card, index) in wallet.cards" :key="index" @dblclick="deleteCard(index)" class="bank-card flex flex-col justify-between shrink-0" :style="{background: card.color || '#1a1a1a'}">
+                    <div class="flex justify-between items-start"><span class="font-bold text-lg tracking-wider">{{ card.bankName }}</span><i class="fab fa-cc-visa text-2xl opacity-50"></i></div>
+                    <div class="text-xl tracking-widest font-mono text-center my-4">**** **** **** {{ card.number.slice(-4) }}</div>
+                    <div class="flex justify-between text-xs items-end">
+                        <span>{{ card.holder }}</span>
+                        <div class="flex flex-col items-end">
+                            <span class="font-bold text-lg">¥ {{ card.balance.toFixed(2) }}</span>
+                            <div class="flex items-center gap-1 mt-1 cursor-pointer" @click.stop="card.showPass = !card.showPass">
+                                <i :class="card.showPass ? 'fas fa-eye' : 'fas fa-eye-slash'" class="text-[10px]"></i>
+                                <span class="text-[10px]">{{ card.showPass ? card.password : '******' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div v-if="wallet.cards.length === 0" class="bank-card flex items-center justify-center bg-gray-300 text-gray-500 shrink-0">点击加号添加银行卡</div>
+            </div>
+            <div class="flex-1 bg-white rounded-t-3xl p-6 shadow-[-2px_-5px_15px_rgba(0,0,0,0.05)] mt-4 overflow-y-auto">
+                <h3 class="font-bold mb-4 text-lg">交易明细</h3>
+                <div v-if="currentCard"><div v-for="(tx, tIdx) in currentCard.transactions" :key="tIdx" class="flex justify-between items-center py-3 border-b border-gray-50"><div><div class="font-medium text-sm">{{ tx.title }}</div><div class="text-xs text-gray-400">{{ tx.date }}</div></div><div :class="tx.amount > 0 ? 'text-green-600 font-bold' : 'text-black font-bold'">{{ tx.amount > 0 ? '+' : '' }}{{ tx.amount.toFixed(2) }}</div></div></div>
+            </div>
+        </div>
+
+        <div v-if="currentSubPage === 'shopping'" class="flex flex-col h-full bg-gray-50 relative">
+             <div class="p-4 flex gap-2 items-center bg-white shadow-sm z-10">
+                 <div class="flex-1 bg-gray-100 rounded-full flex items-center px-4 py-2 search-bar border border-black">
+                     <i class="fas fa-search text-gray-400 mr-2"></i>
+                     <input v-model="shoppingSearch" @keydown.enter="searchProducts" class="bg-transparent outline-none text-sm w-full" placeholder="输入商品...">
+                 </div>
+                 <button @click="searchProducts" class="bg-black text-white px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap"><i class="fas fa-magic mr-1"></i>生成</button>
+             </div>
+             
+             <div class="flex-1 overflow-y-auto p-4 pb-32">
+                 <div class="flex justify-between items-center mb-2 px-1">
+                     <span class="text-xs text-gray-400 font-bold" v-if="products.length>0">商品列表 ({{products.length}})</span>
+                     <button v-if="products.length>0" @click="products=[]" class="text-xs text-red-400">清空</button>
+                 </div>
+                 <div v-if="isSearchingProducts" class="text-center py-10 text-gray-400"><i class="fas fa-circle-notch fa-spin text-2xl mb-2"></i><div class="text-xs">AI 正在生成商品...</div></div>
+                 <div v-else-if="products.length === 0" class="text-center py-10 text-gray-400 text-sm">请输入关键词生成商品</div>
+                 <div v-else class="grid grid-cols-2 gap-4">
+                     <div v-for="(prod, pIdx) in products" :key="pIdx" class="bg-white rounded-lg overflow-hidden shadow-sm flex flex-col">
+                         <div class="h-32 bg-gray-200 relative">
+                             <img v-if="prod.image" :src="prod.image" class="w-full h-full object-cover">
+                             <div v-else class="w-full h-full flex items-center justify-center text-gray-400 text-xs">商品图片</div>
+                         </div>
+                         <div class="p-3 flex-1 flex flex-col">
+                             <div class="font-bold text-sm line-clamp-2 mb-1">{{ prod.name }}</div>
+                             <div class="text-xs text-gray-500 mb-2 line-clamp-2 flex-1">{{ prod.desc }}</div>
+                             <div class="flex justify-between items-center mt-auto">
+                                 <span class="text-red-500 font-bold">¥{{ prod.price }}</span>
+                                 <button @click="addToCart(prod)" class="bg-black text-white w-6 h-6 rounded-full flex items-center justify-center text-xs"><i class="fas fa-plus"></i></button>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+
+             <!-- 购物车底栏 -->
+             <div class="absolute bottom-0 w-full bg-white border-t p-4 z-20 safe-bottom shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
+                 <div v-if="cart.length > 0" class="flex overflow-x-auto gap-3 mb-3 pb-2 hide-scrollbar">
+                     <div v-for="(item, cIdx) in cart" :key="cIdx" class="shrink-0 relative">
+                         <img :src="item.image || 'https://via.placeholder.com/100'" class="w-10 h-10 rounded border object-cover">
+                         <div class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] border border-white cursor-pointer" @click="removeFromCart(cIdx)">×</div>
+                     </div>
+                 </div>
+                 <div class="flex justify-between items-center">
+                     <div>
+                         <div class="text-xs text-gray-500">总计</div>
+                         <div class="text-xl font-bold">¥{{ cartTotal.toFixed(2) }}</div>
+                     </div>
+                     <button @click="openCheckoutModal" :disabled="cart.length===0" class="bg-black text-white px-8 py-3 rounded-full font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">结算 ({{ cart.length }})</button>
+                 </div>
+             </div>
+        </div>
+        
+        <div v-if="currentSubPage === 'api'" class="p-4 bg-white space-y-4">
+             <div class="flex justify-between items-center">
+                 <span class="font-bold">配置管理</span>
+                 <div class="flex gap-2">
+                     <select v-model="selectedConfigId" @change="loadApiConfig" class="input-std w-32 h-8 text-xs py-0">
+                         <option value="">选择配置...</option>
+                         <option v-for="c in savedApiConfigs" :value="c.id">{{ c.name }}</option>
+                     </select>
+                     <button @click="saveApiConfig" class="bg-black text-white px-2 rounded text-xs">保存当前</button>
+                 </div>
+             </div>
+             <div><label class="text-xs font-bold text-gray-500 uppercase">配置名称 (用于保存)</label><input v-model="apiConfig.name" class="input-std mt-1" placeholder="例如: DeepSeek"></div>
+             <div><label class="text-xs font-bold text-gray-500 uppercase">Base URL</label><input v-model="apiConfig.url" class="input-std mt-1" placeholder="https://api.openai.com/v1"></div>
+             <div><label class="text-xs font-bold text-gray-500 uppercase">API Key</label><input v-model="apiConfig.key" type="password" class="input-std mt-1"></div>
+             <button @click="fetchModels" class="btn-outline w-full">拉取模型列表</button>
+             <div v-if="models.length > 0"><label class="text-xs font-bold text-gray-500 uppercase">选择模型</label><select v-model="apiConfig.model" class="input-std mt-1"><option v-for="m in models" :value="m.id">{{ m.id }}</option></select></div>
+        </div>
+
+        <div v-if="currentSubPage === 'style'" class="p-4 h-full flex flex-col pb-20">
+            <div class="text-xs text-gray-500 mb-3 bg-gray-50 p-3 rounded-lg border border-gray-100 shadow-sm">
+                <p class="font-bold text-black mb-1"><i class="fas fa-info-circle mr-1"></i>全局样式说明</p>
+                <p class="leading-relaxed mb-1">此处输入的 CSS 将作为默认样式应用于所有角色。</p>
+                <p class="text-blue-600">提示：如果在角色的“详细设定”中单独设置了气泡样式，该角色的样式将优先于此处的全局设置。</p>
+            </div>
+            <textarea v-model="customCSS" class="flex-1 input-std font-mono text-xs resize-none mb-4" placeholder="输入全局 CSS 代码...
+例如:
+.bubble-me { background: #000; color: #fff; }"></textarea>
+            <div class="grid grid-cols-2 gap-3"><button @click="applyCSS" class="btn-black">应用全局样式</button><button @click="downloadAllCSS" class="btn-outline">拉取网页全部CSS</button></div>
+        </div>
+
+        <div v-if="currentSubPage === 'worldbook'" class="p-4 bg-white min-h-screen pb-20">
+             <div class="flex gap-2 mb-4 text-sm font-bold border-b pb-2"><span @click="wbFilter = 'global'" :class="wbFilter==='global'?'text-black':'text-gray-300'" class="cursor-pointer">全局世界书</span><span @click="wbFilter = 'char'" :class="wbFilter==='char'?'text-black':'text-gray-300'" class="cursor-pointer">角色世界书</span></div>
+             <div class="space-y-2">
+                <div v-for="wb in filteredWorldBooks" :key="wb.id" class="border rounded-lg p-3 bg-gray-50 flex items-start gap-3" :class="{'border-blue-500': wb.selected}" @click="wb.selected = !wb.selected" @dblclick="deleteWorldBook(wb.id)">
+                    <input type="checkbox" v-model="wb.selected" class="mt-1"><div class="flex-1"><div class="flex justify-between"><span class="font-bold text-sm">{{ wb.name }}</span><span class="text-xs text-gray-400">{{ wb.type === 'global'?'全局':'专属' }}</span></div><div v-if="wb.targetCharId" class="text-xs bg-black text-white inline-block px-1 rounded my-1">绑定: {{ getCharName(wb.targetCharId) }}</div><p class="text-xs text-gray-500 mt-1 line-clamp-2">{{ wb.content }}</p></div>
+                </div>
+            </div>
+            <div class="mt-4" v-if="worldBooks.some(w => w.selected)"><button @click="deleteSelectedWB" class="w-full btn-black bg-red-500">删除选中项</button></div>
+        </div>
+
+        <div v-if="currentSubPage === 'stickers'" class="p-4 pb-20"><div class="grid grid-cols-4 gap-4"><div v-for="(s, i) in stickers" :key="i" class="bg-gray-50 rounded-lg p-2 flex flex-col items-center relative"><img :src="s.url" class="w-12 h-12 object-cover rounded mb-2 bg-white"><span class="text-xs truncate w-full text-center">{{ s.name }}</span><button @click="stickers.splice(i, 1)" class="absolute top-0 right-0 bg-red-500 text-white w-4 h-4 rounded-full text-[10px] flex items-center justify-center">×</button></div></div></div>
+    </div>
+
+    <!-- ================= 独立聊天详情页 ================= -->
+    <div v-if="currentPage === 'chat_detail'" class="fixed inset-0 z-50 bg-white flex flex-col">
+        <div class="bg-white border-b border-gray-100 flex items-center px-4 justify-between shrink-0 header-bar">
+            <button @click="closeChat" class="text-black text-xl"><i class="fas fa-arrow-left"></i></button>
+            <span class="font-bold text-sm">{{ activeChatChar.name }}</span>
+            <button @click="showChatSettings = true" class="text-black text-lg"><i class="fas fa-ellipsis-h"></i></button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-white" id="chat-box" :style="{ backgroundImage: activeChatChar.chatBg ? 'url(' + activeChatChar.chatBg + ')' : '', backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' }">
+            <div v-if="activeChatChar.messages.length === 0" class="text-center text-xs text-gray-300 py-10">双击“发送”让 TA 主动开口</div>
+            <div v-for="(msg, i) in activeChatChar.messages" :key="i" class="flex flex-col relative" :class="{'pl-8': isMultiSelectMode}" @click="toggleSelectMsg(i)">
+                
+                <!-- 多选圈圈 -->
+                <div v-if="isMultiSelectMode" class="absolute left-0 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors" :class="selectedMsgIndices.has(i) ? 'bg-black border-black' : 'border-gray-300'">
+                    <i v-if="selectedMsgIndices.has(i)" class="fas fa-check text-white text-xs"></i>
+                </div>
+
+                <!-- 转账名片 (统一黑色样式) -->
+                <div v-if="msg.type === 'transfer' || msg.type === 'transfer_received_notice'" class="msg-card black-theme mb-2" :class="msg.role === 'user' ? 'self-end' : 'self-start'" @click.stop="openTransferMenu(msg)">
+                     <div class="msg-card-top">
+                         <div class="msg-card-icon bg-orange-500/20 text-orange-500"><i class="fas fa-yen-sign"></i></div>
+                         <div class="msg-card-content">
+                             <div class="msg-card-title">¥ {{ msg.amount }}</div>
+                             <div class="msg-card-desc">{{ msg.transferStatus === 'received' ? '已收款' : msg.transferStatus === 'refunded' ? '已退还' : '转账给朋友' }}</div>
+                         </div>
+                     </div>
+                     <div class="msg-card-bottom">
+                         <span>微信转账</span>
+                     </div>
+                </div>
+
+                <!-- 礼物名片 (样式) -->
+                <div v-else-if="msg.type === 'gift'" class="msg-card mb-2" :class="msg.role === 'user' ? 'self-end' : 'self-start'">
+                    <div class="msg-card-top">
+                         <div class="msg-card-icon bg-pink-100 text-pink-500"><i class="fas fa-gift"></i></div>
+                         <div class="msg-card-content">
+                             <div class="msg-card-title text-pink-500">送出礼物</div>
+                             <div class="msg-card-desc text-black">{{ msg.giftName }} x{{ msg.giftCount }}</div>
+                         </div>
+                     </div>
+                     <div class="msg-card-bottom">
+                         <span>总价 ¥{{ msg.giftTotal }}</span>
+                     </div>
+                </div>
+
+                <!-- 撤回消息条目 -->
+                <div v-else-if="msg.isRetracted" class="text-center w-full mb-1">
+                     <span class="msg-retracted" @click.stop="toggleRetracted(msg)">
+                         {{ msg.showOriginal ? '内容: ' + msg.content : '消息已撤回 (点击查看)' }}
+                     </span>
+                </div>
+
+                <!-- 普通消息气泡 (文本/图片/语音/表情包) -->
+                <div v-else :class="['flex w-full mb-1', msg.role === 'user' ? 'justify-end' : 'justify-start']">
+                    <!-- 对方头像 -->
+                    <img v-if="msg.role !== 'user'" :src="activeChatChar.avatar" class="w-8 h-8 rounded-full mr-2 self-end mb-1">
+                    
+                    <div @dblclick="openMessageMenu(msg, i)" :class="['max-w-[75%] px-4 py-2.5 text-sm relative group', msg.role === 'user' ? 'bubble-me' : 'bubble-other']">
+                        <div v-if="msg.quote" class="quote-block mb-1 text-xs truncate">{{ msg.quote }}</div>
+                        
+                        <!-- 文本 & 表情包 -->
+                        <div v-if="msg.type === 'text'">{{ msg.content }}</div>
+                        
+                        <!-- 图片 (方形占位 + 点击显示文字) -->
+                        <div v-else-if="msg.type === 'image'">
+                            <!-- 如果是表情包，直接显示图片 -->
+                            <img v-if="isSticker(msg.content)" :src="msg.content" class="max-w-[120px] rounded-lg">
+                            <!-- 如果是照片，显示方形占位 -->
+                            <div v-else class="flex flex-col gap-2">
+                                <div class="msg-photo-square" @click.stop="msg.showContent = !msg.showContent">
+                                    <div id="photo-placeholder-style"></div>
+                                </div>
+                                <div v-if="msg.showContent" class="text-xs opacity-70 border-t border-gray-500/20 pt-1 mt-1 break-words">
+                                    {{ msg.content }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 语音 (声浪 + 点击显示文字) -->
+                        <div v-else-if="msg.type === 'audio'">
+                             <div class="msg-voice-wave" @click.stop="msg.showContent = !msg.showContent">
+                                 <i class="fas fa-ear-listen mr-2"></i>
+                                 <div class="wave-bar" style="height:10px"></div><div class="wave-bar" style="height:16px"></div><div class="wave-bar" style="height:8px"></div><div class="wave-bar" style="height:14px"></div>
+                             </div>
+                             <div v-if="msg.showContent" class="text-xs opacity-70 mt-1 border-t border-gray-500/20 pt-1">{{ msg.content }}</div>
+                        </div>
+
+                    </div>
+
+                    <!-- 我方头像 -->
+                    <img v-if="msg.role === 'user'" :src="activeChatChar.userChatAvatar || userProfile.avatar || defaultAvatar" class="w-8 h-8 rounded-full ml-2 self-end mb-1 object-cover">
+                </div>
+            </div>
+            <div v-if="isTyping" class="flex items-center text-gray-400 text-xs ml-10"><i class="fas fa-circle-notch fa-spin mr-1"></i> 对方正在输入...</div>
+        </div>
+
+        <div v-if="inputState.quoteText" class="px-4 py-2 bg-gray-50 border-t flex justify-between items-center text-xs text-gray-500">
+            <span class="truncate max-w-[80%]">引用: {{ inputState.quoteText }}</span>
+            <button @click="inputState.quoteText = ''"><i class="fas fa-times"></i></button>
+        </div>
+
+        <!-- 底部输入框 (多选模式下隐藏) -->
+        <div v-if="!isMultiSelectMode" class="bg-white border-t p-2 flex items-end gap-2 shrink-0 safe-bottom">
+            <button @click="showExtPanel = !showExtPanel" class="w-10 h-10 flex items-center justify-center text-black rounded-full hover:bg-gray-100 transition shrink-0"><i :class="showExtPanel ? 'fas fa-times' : 'fas fa-plus'"></i></button>
+            <textarea v-model="chatInput" @keydown.enter.prevent="handleEnterKey" class="flex-1 bg-gray-100 rounded-2xl px-4 py-2.5 text-sm outline-none resize-none max-h-24 hide-scrollbar border-0" placeholder="发消息..." rows="1" style="border:none!important"></textarea>
+            <button @click="handleSendClick" @dblclick="handleSendDoubleClick" class="w-16 h-10 bg-black text-white rounded-full text-sm font-bold flex items-center justify-center shrink-0">发送</button>
+        </div>
+
+        <!-- 多选操作栏 -->
+        <div v-if="isMultiSelectMode" class="bg-white border-t p-4 flex items-center justify-between shrink-0 safe-bottom shadow-lg z-50">
+            <button @click="cancelMultiSelect" class="text-sm font-bold text-gray-600 px-4">取消</button>
+            <span class="text-xs text-gray-400">已选 {{ selectedMsgIndices.size }} 条</span>
+            <button @click="deleteSelectedMessages" class="text-sm font-bold text-red-500 px-4" :disabled="selectedMsgIndices.size === 0" :class="{'opacity-50': selectedMsgIndices.size === 0}">删除</button>
+        </div>
+
+        <!-- 扩展面板 (移除了添加按钮) -->
+        <div v-if="showExtPanel && !isMultiSelectMode" class="bg-gray-50 border-t p-4 safe-bottom animate-slide-up h-56 overflow-hidden">
+            <div class="grid grid-cols-3 gap-4 mb-4 border-b pb-4">
+                <div @click="extAction('transfer')" class="flex flex-col items-center gap-2 cursor-pointer"><div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-orange-500 text-xl border border-gray-200"><i class="fas fa-money-bill-wave"></i></div><span class="text-xs text-gray-500">转账</span></div>
+                <div @click="extAction('photo')" class="flex flex-col items-center gap-2 cursor-pointer"><div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-purple-500 text-xl border border-gray-200"><i class="fas fa-image"></i></div><span class="text-xs text-gray-500">照片</span></div>
+                <div @click="extAction('voice')" class="flex flex-col items-center gap-2 cursor-pointer"><div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-green-500 text-xl border border-gray-200"><i class="fas fa-microphone"></i></div><span class="text-xs text-gray-500">语音</span></div>
+            </div>
+            <!-- 仅显示已有表情 -->
+            <div class="overflow-x-auto whitespace-nowrap pb-2">
+                 <div v-for="(sticker, idx) in stickers" :key="idx" @click="sendSticker(sticker)" class="inline-flex flex-col items-center gap-1 cursor-pointer mr-4 w-12">
+                    <div class="w-12 h-12 bg-white rounded-lg border border-gray-200 overflow-hidden"><img :src="sticker.url" class="w-full h-full object-cover"></div>
+                    <span class="text-[10px] text-gray-500 truncate w-full text-center">{{ sticker.name }}</span>
+                </div>
+                <div v-if="stickers.length===0" class="text-center text-xs text-gray-400 w-full py-2">暂无表情包 (请在"我的"中添加)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 底部导航 ================= -->
+    <div class="fixed bottom-0 w-full max-w-[480px] bg-white border-t border-gray-100 flex justify-around items-center h-16 z-40 safe-bottom" v-if="currentPage !== 'chat_detail' && currentSubPage !== 'shopping'">
+        <div @click="switchTab('chat')" :class="currentTab === 'chat' ? 'text-black' : 'text-gray-300'" class="flex flex-col items-center w-full cursor-pointer"><i class="fas fa-comment text-xl"></i></div>
+        <div @click="switchTab('moments')" :class="currentTab === 'moments' ? 'text-black' : 'text-gray-300'" class="flex flex-col items-center w-full cursor-pointer"><i class="fas fa-camera-retro text-xl"></i></div>
+        <div @click="switchTab('profile')" :class="currentTab === 'profile' ? 'text-black' : 'text-gray-300'" class="flex flex-col items-center w-full cursor-pointer"><i class="fas fa-user text-xl"></i></div>
+    </div>
+
+    <!-- ================= 模态框组 ================= -->
+    <div v-if="showAddMomentModal" class="fixed inset-0 bg-white z-[60] flex flex-col"><div class="h-14 border-b flex items-center justify-between px-4 safe-top"><button @click="showAddMomentModal = false" class="text-sm">取消</button><span class="font-bold">新帖子</span><button @click="confirmAddMoment" class="text-sm font-bold text-blue-500">发布</button></div><div class="p-4 space-y-4"><textarea v-model="newMoment.content" placeholder="分享你的想法..." class="w-full outline-none h-32 resize-none text-sm"></textarea><div class="flex gap-4 items-center"><div class="w-20 h-20 bg-gray-100 rounded flex items-center justify-center cursor-pointer relative overflow-hidden"><img v-if="newMoment.tempImg" :src="newMoment.tempImg" class="w-full h-full object-cover"><i v-else class="fas fa-image text-gray-300"></i><input type="file" class="file-input" @change="(e) => handleImageUpload(e, (url) => newMoment.tempImg = url)"></div><div class="flex-1"><label class="text-xs font-bold text-gray-500 block mb-1">谁可以看</label><select v-model="newMoment.visibility" class="input-std text-xs"><option value="all">全部角色</option><option value="char">指定角色</option></select><select v-if="newMoment.visibility === 'char'" v-model="newMoment.targetCharId" class="input-std text-xs mt-2"><option v-for="c in characters" :value="c.id">{{ c.name }}</option></select></div></div></div></div>
+
+    <div v-if="showAddWorldBookModal" class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-6"><div class="bg-white rounded-xl w-full max-w-sm p-6 space-y-4"><h3 class="font-bold text-lg">添加世界书</h3><input v-model="newWB.name" placeholder="条目名称" class="input-std"><div class="flex gap-2"><button @click="newWB.type = 'global'" :class="newWB.type==='global'?'bg-black text-white':'bg-gray-100 text-gray-500'" class="flex-1 py-2 rounded text-xs font-bold">全局</button><button @click="newWB.type = 'char'" :class="newWB.type==='char'?'bg-black text-white':'bg-gray-100 text-gray-500'" class="flex-1 py-2 rounded text-xs font-bold">角色专属</button></div><div v-if="newWB.type === 'char'"><select v-model="newWB.targetCharId" class="input-std mt-1"><option v-for="c in characters" :value="c.id">{{ c.name }}</option></select></div><textarea v-model="newWB.content" placeholder="条目内容" class="input-std h-24 resize-none"></textarea><div class="flex gap-2"><button @click="showAddWorldBookModal = false" class="btn-outline w-1/2">取消</button><button @click="addWorldBook" class="btn-black w-1/2">添加</button></div></div></div>
+    
+    <div v-if="showRechargeModal" class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-6"><div class="bg-white rounded-xl w-full max-w-sm p-6 space-y-4"><h3 class="font-bold text-lg">钱包充值</h3><select v-model="rechargeTargetIndex" class="input-std"><option v-for="(c, i) in wallet.cards" :value="i">{{ c.bankName }} ({{ c.number.slice(-4) }})</option></select><input v-model.number="rechargeAmount" type="number" placeholder="金额" class="input-std"><div class="flex gap-2"><button @click="showRechargeModal = false" class="btn-outline w-1/2">取消</button><button @click="processRecharge" class="btn-black w-1/2">确认充值</button></div></div></div>
+    <div v-if="showAddCardModal" class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-6"><div class="bg-white rounded-xl w-full max-w-sm p-6 space-y-3"><h3 class="font-bold">添加银行卡</h3><input v-model="newCard.bankName" placeholder="银行名称" class="input-std"><input :value="newCard.number" @input="limitCardNum" placeholder="卡号 (16-19位)" type="text" inputmode="numeric" maxlength="19" class="input-std"><input v-model="newCard.holder" placeholder="持卡人姓名" class="input-std"><input v-model="newCard.password" placeholder="支付密码" class="input-std"><div class="flex gap-2 mt-2"><button @click="showAddCardModal = false" class="btn-outline w-1/2">取消</button><button @click="confirmAddCard" class="btn-black w-1/2">确定</button></div></div></div>
+    
+    <div v-if="showCheckoutModal" class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-6">
+        <div class="bg-white rounded-xl w-full max-w-sm p-6 space-y-4">
+            <h3 class="font-bold text-lg">结算商品</h3>
+            <div class="py-2 text-center">
+                 <div class="text-xs text-gray-500">支付总额</div>
+                 <div class="text-3xl font-bold">¥ {{ cartTotal.toFixed(2) }}</div>
+            </div>
+            
+            <div>
+                <label class="text-xs font-bold text-gray-500">选择支付卡</label>
+                <select v-model="checkoutState.cardIndex" class="input-std mt-1">
+                    <option v-for="(c, i) in wallet.cards" :value="i">{{ c.bankName }} (余: {{ c.balance.toFixed(2) }})</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="text-xs font-bold text-gray-500">赠送对象</label>
+                <select v-model="checkoutState.recipientType" class="input-std mt-1">
+                    <option value="self">自己 (不发送通知)</option>
+                    <option value="char">指定角色 (发送通知)</option>
+                </select>
+            </div>
+            
+            <div v-if="checkoutState.recipientType === 'char'">
+                <label class="text-xs font-bold text-gray-500">选择角色</label>
+                <select v-model="checkoutState.targetCharId" class="input-std mt-1">
+                    <option v-for="c in characters" :value="c.id">{{ c.name }}</option>
+                </select>
+            </div>
+
+            <div class="flex gap-2 mt-2">
+                <button @click="showCheckoutModal = false" class="btn-outline w-1/2">取消</button>
+                <button @click="startCheckoutProcess" class="btn-black w-1/2">确认支付</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 支付密码验证弹窗 -->
+    <div v-if="paymentVerifyState.visible" class="fixed inset-0 bg-black/50 z-[90] flex items-center justify-center p-6">
+        <div class="bg-white rounded-xl w-full max-w-sm p-6 space-y-4 animate-fade-in">
+             <div class="text-center">
+                 <h3 class="font-bold text-lg mb-1">请输入支付密码</h3>
+                 <div class="text-xs text-gray-500">验证银行卡密码以继续</div>
+             </div>
+             <input v-model="paymentVerifyState.input" type="password" placeholder="密码" class="input-std text-center tracking-widest text-lg" @keydown.enter="submitPaymentPassword" ref="pwdInput">
+             <div class="flex gap-2">
+                 <button @click="paymentVerifyState.visible=false" class="btn-outline w-1/2">取消</button>
+                 <button @click="submitPaymentPassword" class="btn-black w-1/2">确认</button>
+             </div>
+        </div>
+    </div>
+
+    <div v-if="msgMenu.visible" class="fixed inset-0 z-[70] flex items-center justify-center bg-black/20" @click.self="msgMenu.visible = false"><div class="bg-white rounded-xl shadow-xl p-2 w-48 flex flex-col text-sm font-medium animate-fade-in"><button @click="retractMessage" class="py-3 hover:bg-gray-50 rounded text-left px-4">撤回消息</button><button @click="quoteMessage" class="py-3 hover:bg-gray-50 rounded text-left px-4">引用回复</button><button @click="editMessage" class="py-3 hover:bg-gray-50 rounded text-left px-4">重新编辑</button><button @click="deleteMessage" class="py-3 hover:bg-gray-50 rounded text-left px-4 text-red-500">删除 (本地)</button><button @click="startMultiSelect" class="py-3 hover:bg-gray-50 rounded text-left px-4 text-blue-500 border-t mt-1">多选删除</button></div></div>
+    
+    <!-- 详细设定 & 记忆 -->
+    <div v-if="showChatSettings" class="fixed inset-0 z-[60] bg-white flex flex-col"><div class="h-14 flex items-center px-4 border-b header-bar"><button @click="showChatSettings = false" class="text-xl"><i class="fas fa-times"></i></button><span class="ml-4 font-bold">详细设定 & 记忆</span></div>
+        <div class="p-4 space-y-6 overflow-y-auto pb-20 safe-bottom">
+            <!-- 修改当前角色头像 -->
+            <div class="flex items-center justify-between">
+                <span class="font-bold text-sm">角色头像 (仅此角色)</span>
+                <label class="w-10 h-10 rounded-full border bg-gray-100 flex items-center justify-center overflow-hidden cursor-pointer">
+                    <img :src="activeChatChar.avatar || defaultAvatar" class="w-full h-full object-cover">
+                    <input type="file" class="file-input" @change="(e) => handleImageUpload(e, (url) => activeChatChar.avatar = url)">
+                </label>
+            </div>
+            
+            <!-- 新增：聊天背景设置 -->
+            <div class="border-t pt-4">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="font-bold text-sm">聊天背景 (当前角色专属)</h3>
+                    <button v-if="activeChatChar.chatBg" @click="activeChatChar.chatBg = ''" class="text-xs text-red-500">清除背景</button>
+                </div>
+                <div class="relative h-32 bg-gray-100 rounded-lg overflow-hidden cursor-pointer border border-gray-200">
+                    <img v-if="activeChatChar.chatBg" :src="activeChatChar.chatBg" class="w-full h-full object-cover">
+                    <div v-else class="w-full h-full flex flex-col items-center justify-center text-gray-400 text-xs">
+                        <i class="fas fa-image text-2xl mb-1"></i>
+                        <span>点击上传背景图 (仅对当前聊天生效)</span>
+                    </div>
+                    <input type="file" class="file-input absolute inset-0 opacity-0 cursor-pointer" accept="image/*" @change="(e) => handleImageUpload(e, (url) => activeChatChar.chatBg = url)">
+                </div>
+            </div>
+
+            <!-- 新增：气泡美化设置 -->
+            <div class="border-t pt-4">
+                <h3 class="font-bold mb-2">气泡美化 (当前角色专属)</h3>
+                <div class="text-[10px] text-gray-500 mb-2 bg-blue-50 p-3 rounded border border-blue-100">
+                    <div class="font-bold text-blue-600 mb-1">优先级说明</div>
+                    在此处输入的 CSS 将<b>覆盖</b>全局样式。<br>
+                    如果留空，则自动使用“我的 -> 样式美化”中的全局设置。<br>
+                    <div class="mt-2 text-gray-400">
+                        对象: <b>.bubble-me</b> (我), <b>.bubble-other</b> (对方)<br>
+                        示例: .bubble-me { background: #000; color: #fff; }
+                    </div>
+                </div>
+                <textarea v-model="activeChatChar.bubbleCss" class="input-std h-32 resize-none font-mono text-xs" placeholder="在此输入 CSS 代码以定制此角色的气泡..."></textarea>
+            </div>
+            
+            <div class="border-t pt-4"><h3 class="font-bold mb-2">角色人设 (Model Persona)</h3><textarea v-model="activeChatChar.setting" class="input-std h-24 resize-none"></textarea></div>
+            <div><h3 class="font-bold mb-2">用户人设 (User Persona)</h3><textarea v-model="userProfile.userPersona" class="input-std h-24 resize-none" placeholder="描述你自己..."></textarea></div>
+            
+            <div class="flex items-center justify-between border-t pt-4">
+                <span class="font-bold text-sm">我的聊天头像 (仅当前会话)</span>
+                <label class="w-10 h-10 rounded-full border bg-gray-100 flex items-center justify-center overflow-hidden cursor-pointer">
+                    <img :src="activeChatChar.userChatAvatar || userProfile.avatar || defaultAvatar" class="w-full h-full object-cover">
+                    <input type="file" class="file-input" @change="(e) => handleImageUpload(e, (url) => activeChatChar.userChatAvatar = url)">
+                </label>
+            </div>
+
+            <!-- 清空聊天记录功能 -->
+            <div class="border-t pt-4">
+                <h3 class="font-bold mb-2 text-red-500">危险操作</h3>
+                <div class="space-y-2">
+                    <button @click="clearChatHistory" class="w-full btn-outline border-red-200 text-red-500 hover:bg-red-50">清空聊天记录 (保留记忆)</button>
+                    <button @click="clearChatAndMemory" class="w-full btn-black bg-red-500">彻底清空 (记录+记忆)</button>
+                </div>
+            </div>
+
+            <div class="border-t pt-4">
+                <h3 class="font-bold mb-2">记忆管理</h3>
+                <div class="bg-blue-50 p-3 rounded-lg mb-4 flex items-center justify-between">
+                    <div><div class="text-xs font-bold text-blue-800">自动总结</div><div class="text-[10px] text-blue-600">每隔多少楼层自动压缩记忆</div></div>
+                    <input type="number" v-model.number="activeChatChar.autoSummaryThreshold" class="w-16 input-std text-center h-8" placeholder="关闭">
+                </div>
+                <div class="bg-gray-50 p-3 rounded-lg mb-4"><label class="text-xs font-bold text-gray-500">手动总结楼层</label><div class="flex gap-2 mt-1"><input v-model="manualMemoryRange" placeholder="例如: 1-50" class="input-std flex-1"><button @click="manualSummarize" class="btn-black text-xs whitespace-nowrap">生成总结</button></div></div>
+                <div class="space-y-3"><div v-for="(mem, mIdx) in activeChatChar.memoryEntries" :key="mem.id" class="border p-3 rounded-lg relative"><div class="flex justify-between items-center mb-1"><span class="text-xs font-bold text-blue-600">范围: {{ mem.range }}</span><div class="flex gap-2 text-xs"><button @click="mem.isEditing=true" class="text-gray-500">编辑</button><button @click="activeChatChar.memoryEntries.splice(mIdx,1)" class="text-red-500">删除</button></div></div><div v-if="mem.isEditing"><textarea v-model="mem.content" class="input-std h-20 text-xs"></textarea><button @click="mem.isEditing=false" class="text-xs bg-black text-white px-2 py-1 rounded mt-1">保存</button></div><p v-else class="text-xs text-gray-700 leading-relaxed">{{ mem.content }}</p></div></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 转账接收弹窗 -->
+    <div v-if="receiveTransferState.visible" class="fixed inset-0 bg-black/50 z-[80] flex items-center justify-center p-6">
+        <div class="bg-white rounded-xl w-full max-w-sm p-6 space-y-4">
+            <h3 class="font-bold text-lg">接收转账</h3>
+            <div class="text-center py-4"><span class="text-2xl font-bold">¥ {{ receiveTransferState.msg.amount }}</span></div>
+            <label class="text-xs font-bold text-gray-500">存入银行卡</label>
+            <select v-model="receiveTransferState.targetCardIdx" class="input-std">
+                <option v-for="(c, i) in wallet.cards" :value="i">{{ c.bankName }} (尾号{{ c.number.slice(-4) }})</option>
+            </select>
+            <div class="flex gap-2">
+                <button @click="receiveTransferState.visible = false" class="btn-outline w-1/2">取消</button>
+                <button @click="processReceiveTransfer" class="btn-black w-1/2">确认接收</button>
+            </div>
+        </div>
+    </div>
+    <!-- 转账菜单 -->
+    <div v-if="transferMenu.visible" class="fixed inset-0 bg-black/20 z-[70] flex items-end justify-center sm:items-center p-4" @click.self="transferMenu.visible=false">
+         <div class="bg-white rounded-xl w-full max-w-sm p-4 space-y-2 animate-slide-up sm:animate-fade-in">
+             <div class="text-center font-bold mb-2">转账处理</div>
+             <div v-if="transferMenu.msg.role === 'user' && !transferMenu.msg.transferStatus" class="text-center text-gray-400 py-4 text-xs">等待对方收款...</div>
+             <button v-if="transferMenu.msg.role !== 'user' && !transferMenu.msg.transferStatus" @click="openReceiveModal" class="w-full btn-black bg-green-500">接收转账</button>
+             <button v-if="transferMenu.msg.role !== 'user' && !transferMenu.msg.transferStatus" @click="refundTransfer" class="w-full btn-black bg-red-500">退还</button>
+             <div v-if="transferMenu.msg.transferStatus" class="text-center text-gray-500 py-2">此转账已{{ transferMenu.msg.transferStatus === 'received' ? '接收' : '退还' }}</div>
+             <button @click="transferMenu.visible=false" class="w-full btn-outline">关闭</button>
+         </div>
+    </div>
+
+    <div v-if="commentInput.visible" class="fixed bottom-0 w-full max-w-[480px] bg-white p-3 z-[60] border-t shadow-lg flex items-center gap-2 safe-bottom"><input ref="commentRef" v-model="commentInput.text" class="flex-1 input-std" :placeholder="commentInput.replyTo ? '回复 ' + commentInput.replyTo : '发表评论...'"><button @click="submitComment" class="btn-black px-4">发送</button></div>
+    <div v-if="extInput.visible" class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-6"><div class="bg-white rounded-xl w-full max-w-sm p-6 space-y-4"><h3 class="font-bold">{{ extInput.title }}</h3><div v-if="extInput.type === 'transfer'"><select v-model="extInput.cardIndex" class="input-std mb-2"><option v-for="(c, i) in wallet.cards" :value="i">{{ c.bankName }} (余: {{ c.balance }})</option></select><input v-model.number="extInput.amount" type="number" placeholder="转账金额" class="input-std"></div><div v-else><textarea v-model="extInput.content" :placeholder="extInput.placeholder" class="input-std h-24 resize-none"></textarea></div><div class="flex gap-2"><button @click="extInput.visible = false" class="btn-outline w-1/2">取消</button><button @click="processExtAction" class="btn-black w-1/2">发送</button></div></div></div>
+    <div v-if="showAddCharacterModal" class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-6"><div class="bg-white rounded-xl w-full max-w-sm p-6 space-y-3"><h3 class="font-bold">新联系人</h3><div class="flex justify-center mb-2"><label class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center cursor-pointer overflow-hidden border"><img v-if="newChar.avatar" :src="newChar.avatar" class="w-full h-full object-cover"><i v-else class="fas fa-camera text-gray-400"></i><input type="file" class="file-input" @change="(e) => handleImageUpload(e, (url) => newChar.avatar = url)"></label></div><input v-model="newChar.name" placeholder="名字" class="input-std"><textarea v-model="newChar.setting" placeholder="角色设定" class="input-std h-24 resize-none"></textarea><div class="flex gap-2"><button @click="showAddCharacterModal = false" class="btn-outline w-1/2">取消</button><button @click="confirmAddCharacter" class="btn-black w-1/2">保存</button></div></div></div>
+    
+    <div v-if="showAddStickerModal" class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-6"><div class="bg-white rounded-xl w-full max-w-sm p-6 space-y-3"><h3 class="font-bold">批量添加表情包</h3><p class="text-[10px] text-gray-500">每行一个，格式：名字:链接</p><textarea v-model="newStickerStr" placeholder="开心:https://...\n难过:https://..." class="input-std h-32 resize-none"></textarea><div class="flex gap-2"><button @click="showAddStickerModal = false" class="btn-outline w-1/2">取消</button><button @click="confirmAddSticker" class="btn-black w-1/2">添加</button></div></div></div>
+    
+    <div v-if="editMomentState.visible" class="fixed inset-0 bg-white z-[65] flex flex-col p-4"><div class="flex justify-between mb-4 safe-top"><button @click="editMomentState.visible = false">取消</button><span class="font-bold">编辑朋友圈</span><button @click="saveEditedMoment" class="font-bold text-blue-500">保存</button></div><textarea v-model="editMomentState.content" class="input-std h-48 resize-none"></textarea></div>
+    <div v-if="showCodeExport" class="fixed inset-0 bg-black/90 z-[90] flex flex-col p-4"><div class="flex justify-between text-white mb-2 safe-top"><span>All CSS Export</span><button @click="showCodeExport = false" class="text-red-500">Close</button></div><textarea readonly class="flex-1 text-xs font-mono p-2 bg-gray-800 text-green-400 select-all outline-none" :value="exportedCode"></textarea></div>
+
+</div>
+
+<script>
+    const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
+
+    createApp({
+        setup() {
+            const currentTab = ref('chat');
+            const currentSubPage = ref(null);
+            const currentPage = ref('home');
+            const subPageTitle = ref('');
+            
+            const userProfile = ref({ name: 'User', wechatId: 'ai_master', avatar: '', bgImage: '', userPersona: '' });
+            const characters = ref([]);
+            const worldBooks = ref([]);
+            const moments = ref([]);
+            const stickers = ref([]);
+            const wallet = ref({ cards: [] });
+            const apiConfig = ref({ name: '', url: '', key: '', model: '' });
+            const savedApiConfigs = ref([]);
+            const selectedConfigId = ref('');
+            const customCSS = ref('');
+            const models = ref([]);
+
+            const showAddCharacterModal = ref(false);
+            const showAddMomentModal = ref(false);
+            const showAddCardModal = ref(false);
+            const showAddStickerModal = ref(false);
+            const showAddWorldBookModal = ref(false);
+            const showRechargeModal = ref(false);
+            const showChatSettings = ref(false);
+            const showExtPanel = ref(false);
+            const showCodeExport = ref(false);
+            const exportedCode = ref('');
+            
+            // 购物功能 State
+            const shoppingSearch = ref('');
+            const isSearchingProducts = ref(false);
+            const products = ref([]);
+            const cart = ref([]);
+            const showCheckoutModal = ref(false);
+            const checkoutState = ref({ cardIndex: 0, recipientType: 'self', targetCharId: '' });
+
+            // 多选删除 State
+            const isMultiSelectMode = ref(false);
+            const selectedMsgIndices = ref(new Set());
+
+            const chatInput = ref('');
+            const activeChatChar = ref(null);
+            const isTyping = ref(false);
+            const newChar = ref({ name: '', avatar: '', setting: '' });
+            const newMoment = ref({ content: '', tempImg: '', visibility: 'all', targetCharId: '' });
+            const newCard = ref({ bankName: '', number: '', holder: '', password: '', balance: 0, transactions: [] });
+            const newStickerStr = ref('');
+            const newWB = ref({ name: '', type: 'global', content: '', selected: false, targetCharId: '' });
+            
+            const inputState = ref({ quoteText: '' });
+            const msgMenu = ref({ visible: false, msg: null, index: -1 });
+            const commentInput = ref({ visible: false, text: '', mIndex: -1, rIndex: -1, replyTo: '' });
+            const extInput = ref({ visible: false, type: '', title: '', content: '', placeholder: '', cardIndex: 0, amount: 0 });
+            const rechargeTargetIndex = ref(0);
+            const rechargeAmount = ref(0);
+            const wbFilter = ref('global');
+            const manualMemoryRange = ref('');
+            const editMomentState = ref({ visible: false, index: -1, content: '' });
+            const touchStartX = ref(0);
+            
+            // 新增：转账状态
+            const transferMenu = ref({ visible: false, msg: null });
+            const receiveTransferState = ref({ visible: false, msg: null, targetCardIdx: 0 });
+            const paymentVerifyState = ref({ visible: false, input: '', callback: null, card: null });
+
+            const defaultAvatar = 'https://ui-avatars.com/api/?background=random&name=User';
+            const defaultBg = 'https://images.unsplash.com/photo-1614850523459-c2f4c699c52e';
+            const tabTitles = { chat: 'Chat', moments: 'Moments', profile: 'Profile' };
+
+            onMounted(() => {
+                const load = (k, d) => { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }
+                userProfile.value = load('ins_profile', userProfile.value);
+                characters.value = load('ins_chars', []);
+                characters.value.forEach(c => { 
+                    if(!c.id) c.id = Date.now() + Math.random(); 
+                    if(!c.memoryEntries) c.memoryEntries = [];
+                    if(c.autoSummaryThreshold === undefined) c.autoSummaryThreshold = null; 
+                    if(!c.summaryCounter) c.summaryCounter = 0;
+                    if(!c.userChatAvatar) c.userChatAvatar = '';
+                    // 确保有新字段
+                    if(!c.chatBg) c.chatBg = '';
+                    if(!c.bubbleCss) c.bubbleCss = '';
+                    c.swipeOffset = 0; 
+                });
+                worldBooks.value = load('ins_wb', []);
+                moments.value = load('ins_moments', []);
+                wallet.value = load('ins_wallet', { cards: [] });
+                stickers.value = load('ins_stickers', []);
+                apiConfig.value = load('ins_config', { name: '', url: '', key: '', model: '' });
+                savedApiConfigs.value = load('ins_saved_configs', []);
+                cart.value = load('ins_cart', []);
+                products.value = load('ins_products', []); // Load products
+                customCSS.value = localStorage.getItem('ins_css') || '';
+                applyCSS();
+            });
+
+            const saveData = () => {
+                const cleanChars = characters.value.map(c => ({...c, swipeOffset: 0}));
+                localStorage.setItem('ins_profile', JSON.stringify(userProfile.value));
+                localStorage.setItem('ins_chars', JSON.stringify(cleanChars));
+                localStorage.setItem('ins_wb', JSON.stringify(worldBooks.value));
+                localStorage.setItem('ins_moments', JSON.stringify(moments.value));
+                localStorage.setItem('ins_wallet', JSON.stringify(wallet.value));
+                localStorage.setItem('ins_stickers', JSON.stringify(stickers.value));
+                localStorage.setItem('ins_config', JSON.stringify(apiConfig.value));
+                localStorage.setItem('ins_saved_configs', JSON.stringify(savedApiConfigs.value));
+                localStorage.setItem('ins_cart', JSON.stringify(cart.value));
+                localStorage.setItem('ins_products', JSON.stringify(products.value)); // Save products
+                localStorage.setItem('ins_css', customCSS.value);
+            };
+            watch([userProfile, characters, worldBooks, moments, wallet, stickers, apiConfig, savedApiConfigs, cart, products], saveData, { deep: true });
+            
+            // 监听当前角色气泡样式的变化，并应用
+            watch(() => activeChatChar.value, (newChar) => {
+                const el = document.getElementById('char-custom-css');
+                if (el) {
+                    el.innerHTML = (newChar && newChar.bubbleCss) ? newChar.bubbleCss : '';
+                }
+            }, { deep: true });
+
+            const switchTab = (t) => { currentTab.value = t; currentSubPage.value = null; };
+            const goToSubPage = (p, t) => { currentSubPage.value = p; subPageTitle.value = t; };
+            const goBack = () => { currentSubPage.value = null; };
+            const closeChat = () => { currentPage.value = 'home'; activeChatChar.value = null; };
+            const handleImageUpload = (e, cb) => { const f = e.target.files[0]; if(f) { const r = new FileReader(); r.onload = (ev) => cb(ev.target.result); r.readAsDataURL(f); } };
+
+            const sortedCharacters = computed(() => [...characters.value].sort((a, b) => (a.isPinned !== b.isPinned ? (a.isPinned ? -1 : 1) : 0)));
+            const touchStart = (e, char) => { touchStartX.value = e.touches[0].clientX; };
+            const touchMove = (e, char) => { const delta = e.touches[0].clientX - touchStartX.value; if (delta < 0 && delta > -150) char.swipeOffset = delta; };
+            const touchEnd = (e, char) => { if (char.swipeOffset < -60) char.swipeOffset = -140; else char.swipeOffset = 0; };
+            const togglePin = (char) => { char.isPinned = !char.isPinned; char.swipeOffset = 0; };
+            const deleteCharacter = (id) => { if(confirm("确认删除?")) characters.value = characters.value.filter(c => c.id !== id); };
+
+            const openChat = (c) => { 
+                if (c.swipeOffset < -10) { c.swipeOffset = 0; return; } 
+                activeChatChar.value = c; 
+                currentPage.value = 'chat_detail'; 
+                isMultiSelectMode.value = false; 
+                selectedMsgIndices.value = new Set();
+                
+                // 立即应用该角色的样式
+                const el = document.getElementById('char-custom-css');
+                if (el) el.innerHTML = c.bubbleCss || '';
+                
+                nextTick(scrollToBottom); 
+            };
+            const scrollToBottom = () => { const el = document.getElementById('chat-box'); if(el) el.scrollTop = el.scrollHeight; };
+            
+            const buildContext = (char) => {
+                let p = `你正在扮演角色：${char.name}。\n角色设定：${char.setting}\n`;
+                if (userProfile.value.userPersona) p += `\n[用户设定]：${userProfile.value.userPersona}\n`;
+                const wbs = worldBooks.value.filter(w => w.type==='global' || (w.type==='char' && w.targetCharId===char.id));
+                if (wbs.length) { p += `\n[世界观]：\n`; wbs.forEach(w => p += `- ${w.name}: ${w.content}\n`); }
+                if (char.memoryEntries?.length) { p += `\n[长期记忆]：\n`; char.memoryEntries.forEach(m => p += `- [${m.range}]: ${m.content}\n`); }
+                const visibleMoments = moments.value.filter(m => m.visibility === 'all' || (m.visibility === 'char' && m.targetCharId === char.id)).slice(0, 5);
+                if (visibleMoments.length) { p += `\n[用户最近朋友圈]：\n`; visibleMoments.forEach(m => p += `- ${m.time}: ${m.content} ${m.images.length?'[图片]':''}\n`); }
+                const stickerList = stickers.value.map(s => s.name).join(', ');
+                p += `\n【重要指令】\n1. 严禁输出任何动作描写(如*点头*)或心理活动(如(他想...))，只输出口语对话内容。\n2. 你可以使用特殊指令:\n- 发图片: [照片:图片描述]\n- 发语音: [语音:语音内容文本]\n- 银行转账: [转账:金额]\n- 发表情包: [表情包:名字]\n- 接收转账: [收款] (当用户给你转账时使用)\n3. 只能使用以下表情包名字: ${stickerList || '无'}`;
+                return p;
+            };
+
+            const triggerAI = async () => {
+                if (!apiConfig.value.url) return;
+                isTyping.value = true;
+                const msgs = activeChatChar.value.messages.map(m => {
+                    let c = m.content;
+                    if(m.isRetracted) c = "[撤回]";
+                    else if(m.type==='image' && !isSticker(c)) c = `[图片: ${c}]`;
+                    else if(m.type==='transfer') c = `[转账 ¥${m.amount}]`;
+                    else if(m.type==='gift') c = `[系统消息: 赠送礼物 ${m.giftName} x${m.giftCount} (总价¥${m.giftTotal})]`;
+                    if(m.quote) c = `(引用: ${m.quote}) ${c}`;
+                    return { role: m.role, content: c };
+                });
+                try {
+                    const res = await fetch(apiConfig.value.url + '/chat/completions', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiConfig.value.key}` },
+                        body: JSON.stringify({ model: apiConfig.value.model || 'gpt-3.5-turbo', messages: [{role:'system',content:buildContext(activeChatChar.value)}, ...msgs] })
+                    });
+                    const d = await res.json();
+                    parseAndPushResponse(d.choices[0].message.content);
+                } catch(e) { alert(e.message); } finally { isTyping.value = false; nextTick(scrollToBottom); }
+            };
+
+            const parseAndPushResponse = (text) => {
+                const regex = /\[(照片|语音|转账|表情包|收款):([^\]]*)\]/g;
+                let lastIndex = 0;
+                let match;
+                while ((match = regex.exec(text)) !== null) {
+                    if (match.index > lastIndex) {
+                        const sub = text.substring(lastIndex, match.index).trim();
+                        if (sub) activeChatChar.value.messages.push({ role: 'assistant', type: 'text', content: sub });
+                    }
+                    const type = match[1];
+                    const content = match[2];
+                    if (type === '照片') {
+                         activeChatChar.value.messages.push({ role: 'assistant', type: 'image', content: content, showContent: false }); 
+                    } else if (type === '语音') {
+                         activeChatChar.value.messages.push({ role: 'assistant', type: 'audio', content: content, showContent: false });
+                    } else if (type === '转账') {
+                         activeChatChar.value.messages.push({ role: 'assistant', type: 'transfer', amount: parseFloat(content) || 0, content: '转账', transferStatus: '' });
+                    } else if (type === '表情包') {
+                         const s = stickers.value.find(st => st.name === content.trim());
+                         if (s) activeChatChar.value.messages.push({ role: 'assistant', type: 'image', content: s.url });
+                         else activeChatChar.value.messages.push({ role: 'assistant', type: 'text', content: `[表情包:${content}]` });
+                    } else if (type === '收款') {
+                        // AI 接收用户的转账
+                        const lastTransfer = [...activeChatChar.value.messages].reverse().find(m => m.role === 'user' && m.type === 'transfer' && !m.transferStatus);
+                        if(lastTransfer) {
+                            lastTransfer.transferStatus = 'received';
+                            activeChatChar.value.messages.push({ role: 'assistant', type: 'transfer_received_notice', amount: lastTransfer.amount, content: '已收款', transferStatus: 'received' });
+                        }
+                    }
+                    lastIndex = regex.lastIndex;
+                }
+                if (lastIndex < text.length) {
+                    const sub = text.substring(lastIndex).trim();
+                    if (sub) activeChatChar.value.messages.push({ role: 'assistant', type: 'text', content: sub });
+                }
+                activeChatChar.value.lastMessage = "新消息..."; checkAutoSummary();
+            };
+
+            const isSticker = (url) => stickers.value.some(s => s.url === url);
+
+            const handleEnterKey = (e) => { if(!e.shiftKey) pushUserMessage(); };
+            const handleSendClick = () => pushUserMessage();
+            const handleSendDoubleClick = () => { if(chatInput.value.trim()){ pushUserMessage(); setTimeout(triggerAI, 500); } else triggerAI(); };
+            const pushUserMessage = () => { 
+                if(!chatInput.value.trim()) return; 
+                activeChatChar.value.messages.push({ role: 'user', type: 'text', content: chatInput.value, quote: inputState.value.quoteText }); 
+                activeChatChar.value.lastMessage = chatInput.value; 
+                chatInput.value = ''; inputState.value.quoteText = ''; checkAutoSummary(); nextTick(scrollToBottom); 
+            };
+
+            // 转账逻辑
+            const openTransferMenu = (msg) => { transferMenu.value = { visible: true, msg }; };
+            const openReceiveModal = () => { transferMenu.value.visible = false; receiveTransferState.value = { visible: true, msg: transferMenu.value.msg, targetCardIdx: 0 }; };
+            const processReceiveTransfer = () => {
+                const { msg, targetCardIdx } = receiveTransferState.value;
+                const card = wallet.value.cards[targetCardIdx];
+                if(card) {
+                    card.balance += msg.amount;
+                    card.transactions.unshift({ title: `接收转账`, amount: msg.amount, date: new Date().toLocaleDateString() });
+                    msg.transferStatus = 'received';
+                }
+                receiveTransferState.value.visible = false;
+            };
+            const refundTransfer = () => { transferMenu.value.msg.transferStatus = 'refunded'; transferMenu.value.visible = false; };
+
+            const checkAutoSummary = () => {
+                const char = activeChatChar.value;
+                if (!char.autoSummaryThreshold) return;
+                if (!char.summaryCounter) char.summaryCounter = 0;
+                char.summaryCounter++;
+                if (char.summaryCounter >= char.autoSummaryThreshold) {
+                    char.summaryCounter = 0;
+                    const msgs = char.messages.slice(-char.autoSummaryThreshold).map(m=>`${m.role}:${m.content}`).join('\n');
+                    doSummary(msgs, `(自动总结 ${char.autoSummaryThreshold}楼)`);
+                }
+            };
+
+            const manualSummarize = () => {
+                const r = manualMemoryRange.value.split(/[-到]/);
+                if(r.length!==2) return alert("格式 1-50");
+                const s = parseInt(r[0]), e = parseInt(r[1]);
+                if(isNaN(s)||isNaN(e)) return;
+                const msgs = activeChatChar.value.messages.slice(s-1, e).map(m=>`${m.role}:${m.content}`).join('\n');
+                doSummary(msgs, `${s}-${e}`); manualMemoryRange.value = '';
+            };
+
+            const doSummary = async (text, rangeLabel) => {
+                try {
+                    const res = await fetch(apiConfig.value.url + '/chat/completions', {
+                        method: 'POST', headers: { 'Authorization': `Bearer ${apiConfig.value.key}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ model: apiConfig.value.model, messages: [{role:'user',content:`总结:\n${text}`}] })
+                    });
+                    const d = await res.json();
+                    activeChatChar.value.memoryEntries.push({ id: Date.now(), range: rangeLabel, content: d.choices[0].message.content, isEditing: false });
+                } catch(err) { console.error(err); }
+            };
+
+            const openMessageMenu = (msg, idx) => { msgMenu.value = { visible: true, msg, index: idx }; };
+            const retractMessage = () => { if(msgMenu.value.msg) { msgMenu.value.msg.isRetracted = true; msgMenu.value.msg.showOriginal = false; } msgMenu.value.visible = false; };
+            const deleteMessage = () => { activeChatChar.value.messages.splice(msgMenu.value.index, 1); msgMenu.value.visible = false; };
+            const quoteMessage = () => { inputState.value.quoteText = msgMenu.value.msg.content; msgMenu.value.visible = false; };
+            const editMessage = () => { if(msgMenu.value.msg.role === 'user') { chatInput.value = msgMenu.value.msg.content; deleteMessage(); } else alert("不可编辑"); msgMenu.value.visible = false; };
+            const toggleRetracted = (msg) => { msg.showOriginal = !msg.showOriginal; };
+
+            // 多选删除逻辑
+            const startMultiSelect = () => { isMultiSelectMode.value = true; selectedMsgIndices.value.clear(); msgMenu.value.visible = false; };
+            const toggleSelectMsg = (i) => { if(!isMultiSelectMode.value) return; if(selectedMsgIndices.value.has(i)) selectedMsgIndices.value.delete(i); else selectedMsgIndices.value.add(i); };
+            const cancelMultiSelect = () => { isMultiSelectMode.value = false; selectedMsgIndices.value.clear(); };
+            const deleteSelectedMessages = () => {
+                if(confirm(`确认删除选中的 ${selectedMsgIndices.value.size} 条消息?`)) {
+                    const indices = Array.from(selectedMsgIndices.value).sort((a,b) => b-a);
+                    indices.forEach(i => activeChatChar.value.messages.splice(i, 1));
+                    cancelMultiSelect();
+                }
+            };
+
+            // 清空聊天逻辑
+            const clearChatHistory = () => { if(confirm("确定清空与该角色的所有聊天记录吗？(保留记忆)")) { activeChatChar.value.messages = []; showChatSettings.value = false; } };
+            const clearChatAndMemory = () => { if(confirm("警告：确定清空所有聊天记录和记忆吗？此操作不可恢复！")) { activeChatChar.value.messages = []; activeChatChar.value.memoryEntries = []; activeChatChar.value.summaryCounter = 0; showChatSettings.value = false; } };
+
+            const extAction = (type) => { extInput.value = { visible: true, type, title: type==='transfer'?'转账':type==='photo'?'照片':'语音', content: '', cardIndex: 0, amount: 0 }; };
+            const processExtAction = () => {
+                const { type, content, cardIndex, amount } = extInput.value;
+                if(type==='transfer'){
+                    const card = wallet.value.cards[cardIndex];
+                    if(!card) return alert("请先添加银行卡");
+                    if(card.balance < amount) return alert("余额不足");
+                    
+                    // 启动支付验证流程
+                    paymentVerifyState.value = {
+                        visible: true,
+                        input: '',
+                        card: card,
+                        callback: () => {
+                            // 验证成功后的回调
+                            card.balance -= amount;
+                            card.transactions.unshift({ title: `转账给: ${activeChatChar.value.name}`, amount: -amount, date: new Date().toLocaleDateString() });
+                            activeChatChar.value.messages.push({ role: 'user', type: 'transfer', amount, content: '转账', transferStatus: '' });
+                            extInput.value.visible = false; 
+                            showExtPanel.value = false; 
+                            nextTick(scrollToBottom);
+                        }
+                    };
+                    // 自动聚焦
+                    nextTick(() => { 
+                       const el = document.querySelector('input[placeholder="密码"]');
+                       if(el) el.focus();
+                    });
+                } else {
+                    activeChatChar.value.messages.push({ role: 'user', type: type==='photo'?'image':'audio', content: content, showContent: false });
+                    extInput.value.visible = false; showExtPanel.value = false; nextTick(scrollToBottom);
+                }
+            };
+            const sendSticker = (s) => { activeChatChar.value.messages.push({ role: 'user', type: 'image', content: s.url }); showExtPanel.value = false; nextTick(scrollToBottom); };
+
+            const openAddMoment = () => { newMoment.value = { content: '', tempImg: '', visibility: 'all', targetCharId: '' }; showAddMomentModal.value = true; };
+            const confirmAddMoment = () => { if(!newMoment.value.content && !newMoment.value.tempImg) return; moments.value.unshift({ id: Date.now(), name: userProfile.value.name||'我', avatar: userProfile.value.avatar, content: newMoment.value.content, images: newMoment.value.tempImg?[newMoment.value.tempImg]:[], time: '刚刚', likes: [], comments: [], showEditMenu: false, visibility: newMoment.value.visibility, targetCharId: newMoment.value.targetCharId }); showAddMomentModal.value = false; };
+            const toggleLike = (i) => { const m = moments.value[i], me = userProfile.value.name||'我'; const idx = m.likes.indexOf(me); if(idx>-1) m.likes.splice(idx,1); else m.likes.push(me); m.hasLiked=!m.hasLiked; };
+            const prepareComment = (i) => { commentInput.value = { visible: true, text: '', mIndex: i, replyTo: '' }; nextTick(()=>document.querySelector('input[placeholder*="评论"]').focus()); };
+            const submitComment = () => { moments.value[commentInput.value.mIndex].comments.push({ user: userProfile.value.name||'我', text: commentInput.value.text, replyTo: commentInput.value.replyTo }); commentInput.value.visible = false; };
+            const editMoment = (i) => { editMomentState.value = { visible: true, index: i, content: moments.value[i].content }; moments.value[i].showEditMenu = false; };
+            const saveEditedMoment = () => { moments.value[editMomentState.value.index].content = editMomentState.value.content; editMomentState.value.visible = false; };
+            const deleteMoment = (i) => { if(confirm("删除?")) moments.value.splice(i, 1); };
+
+            const getCharName = (id) => characters.value.find(c=>c.id===id)?.name || '未知';
+            const limitCardNum = (e) => { 
+                // 限制只能输入数字且最多19位
+                let val = e.target.value.replace(/\D/g, ''); 
+                if(val.length > 19) val = val.slice(0, 19);
+                newCard.value.number = val; 
+                e.target.value = val; // 强制更新输入框显示
+            };
+            const confirmAddCard = () => { if(newCard.value.number.length<16) return alert("16-19位"); wallet.value.cards.push({...newCard.value, balance:0, transactions:[], color:'#1a1a1a'}); showAddCardModal.value=false; newCard.value={bankName:'',number:'',holder:'',password:''}; };
+            const deleteCard = (i) => { if(confirm("删除?")) wallet.value.cards.splice(i,1); };
+            const processRecharge = () => { const c = wallet.value.cards[rechargeTargetIndex.value]; if(c) { c.balance+=rechargeAmount.value; c.transactions.unshift({title:'充值',amount:rechargeAmount.value,date:new Date().toLocaleDateString()}); showRechargeModal.value=false; } };
+            const onCardScroll = (e) => { const w = e.target.scrollWidth/wallet.value.cards.length; currentCardIndex.value = Math.round(e.target.scrollLeft/w); };
+            const currentCardIndex = ref(0);
+            const currentCard = computed(() => wallet.value.cards[currentCardIndex.value]);
+
+            const confirmAddSticker = () => { const lines = newStickerStr.value.split('\n'); let added = 0; lines.forEach(line => { const p = line.split(/[:：]/); if(p.length>=2) { stickers.value.push({name:p[0].trim(), url:p.slice(1).join(':').trim()}); added++; } }); if(added>0) { showAddStickerModal.value=false; newStickerStr.value=''; } else alert("格式错误或为空"); };
+            const confirmAddCharacter = () => { characters.value.push({...newChar.value, id:Date.now(), messages:[], memoryEntries:[], swipeOffset:0}); showAddCharacterModal.value=false; newChar.value={name:'',avatar:'',setting:''}; };
+            const fetchModels = async () => { if(!apiConfig.value.url) return; try { const r = await fetch(apiConfig.value.url+'/models', {headers:{'Authorization':`Bearer ${apiConfig.value.key}`}}); const d = await r.json(); models.value = d.data||[]; } catch(e) { alert("获取失败"); } };
+            const applyCSS = () => { document.getElementById('custom-css-block').innerHTML = customCSS.value; };
+            const downloadAllCSS = () => { const core = document.getElementById('core-style').innerHTML; const custom = customCSS.value; exportedCode.value = `/* Core */\n${core}\n\n/* Custom */\n${custom}`; showCodeExport.value = true; };
+
+            const filteredWorldBooks = computed(() => worldBooks.value.filter(w=>w.type===wbFilter.value));
+            const addWorldBook = () => { worldBooks.value.push({...newWB.value, id:Date.now()}); showAddWorldBookModal.value=false; };
+            const deleteWorldBook = (id) => { if(confirm("删除?")) worldBooks.value = worldBooks.value.filter(w=>w.id!==id); };
+            const deleteSelectedWB = () => { worldBooks.value = worldBooks.value.filter(w=>!w.selected); };
+
+            // 购物功能 Logic
+            const searchProducts = async () => {
+                if(!shoppingSearch.value.trim() || !apiConfig.value.url) return;
+                isSearchingProducts.value = true;
+                // products.value = []; // 不再自动清空
+                try {
+                    const prompt = `请根据用户输入"${shoppingSearch.value}"生成4-6个相关商品。
+                    返回格式必须是JSON数组，每个对象包含: name (商品名), desc (简短描述), price (价格数字), image (图片URL，使用 https://via.placeholder.com/300x300?text=商品名 代替)。
+                    例如: [{"name":"...", "desc":"...", "price":99, "image":"..."}]。只返回JSON数据，不要其他文字。`;
+                    
+                    const res = await fetch(apiConfig.value.url + '/chat/completions', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiConfig.value.key}` },
+                        body: JSON.stringify({ model: apiConfig.value.model || 'gpt-3.5-turbo', messages: [{role:'user',content:prompt}] })
+                    });
+                    const d = await res.json();
+                    let content = d.choices[0].message.content;
+                    // 尝试提取 JSON
+                    const jsonMatch = content.match(/\[.*\]/s);
+                    if(jsonMatch) content = jsonMatch[0];
+                    products.value = JSON.parse(content);
+                } catch(e) { 
+                    console.error(e);
+                    alert("生成商品失败，请重试"); 
+                } finally { 
+                    isSearchingProducts.value = false; 
+                }
+            };
+            
+            const addToCart = (prod) => { cart.value.push(prod); };
+            const removeFromCart = (idx) => { cart.value.splice(idx, 1); };
+            const cartTotal = computed(() => cart.value.reduce((sum, item) => sum + (item.price || 0), 0));
+            const openCheckoutModal = () => { showCheckoutModal.value = true; checkoutState.value = { cardIndex: 0, recipientType: 'self', targetCharId: characters.value[0]?.id || '' }; };
+            
+            const startCheckoutProcess = () => {
+                const { cardIndex } = checkoutState.value;
+                const card = wallet.value.cards[cardIndex];
+                if(!card) return alert("请选择银行卡");
+                if(card.balance < cartTotal.value) return alert("余额不足");
+                
+                // 启动支付验证
+                paymentVerifyState.value = {
+                    visible: true,
+                    input: '',
+                    card: card,
+                    callback: processCheckout
+                };
+                nextTick(() => { 
+                   const el = document.querySelector('input[placeholder="密码"]');
+                   if(el) el.focus();
+                });
+            };
+
+            const submitPaymentPassword = () => {
+                const { input, card, callback } = paymentVerifyState.value;
+                if(input === card.password) {
+                    paymentVerifyState.value.visible = false;
+                    if(callback) callback();
+                } else {
+                    alert("密码错误");
+                    paymentVerifyState.value.input = '';
+                }
+            };
+
+            const processCheckout = () => {
+                const { cardIndex, recipientType, targetCharId } = checkoutState.value;
+                const card = wallet.value.cards[cardIndex];
+                
+                // 扣款
+                card.balance -= cartTotal.value;
+                const itemsName = cart.value.map(i=>i.name).join(', ');
+                card.transactions.unshift({ title: `购物: ${itemsName.slice(0,10)}...`, amount: -cartTotal.value, date: new Date().toLocaleDateString() });
+                
+                // 赠送通知 (改为用户视角发送礼物消息)
+                if(recipientType === 'char' && targetCharId) {
+                    const char = characters.value.find(c => c.id == targetCharId);
+                    if(char) {
+                        const giftTotal = cartTotal.value.toFixed(2);
+                        const giftCount = cart.value.length;
+                        const giftName = cart.value.map(i=>i.name).join(', ').slice(0, 15) + (itemsName.length>15?'...':'');
+                        
+                        // 发送礼物消息
+                        char.messages.push({ 
+                            role: 'user', 
+                            type: 'gift', 
+                            giftName, 
+                            giftCount, 
+                            giftTotal,
+                            content: `[礼物] ${giftName} x${giftCount}`
+                        });
+                        char.lastMessage = "[礼物]";
+                        
+                        // 触发AI回复 (可选)
+                        setTimeout(() => {
+                             // 如果需要AI感谢，可以在这里调用 triggerAI，或者让用户手动触发
+                             // 根据通常逻辑，送礼后AI应该有反应
+                             activeChatChar.value = char; // 确保 triggerAI 上下文正确 (hacky, but simple)
+                             triggerAI();
+                        }, 500);
+                    }
+                }
+                
+                cart.value = []; // 清空购物车
+                showCheckoutModal.value = false;
+                alert("支付成功！");
+            };
+
+            const saveApiConfig = () => {
+                if(!apiConfig.value.name) return alert("请输入配置名称");
+                const existing = savedApiConfigs.value.findIndex(c => c.name === apiConfig.value.name);
+                if(existing > -1) savedApiConfigs.value[existing] = {...apiConfig.value, id: Date.now()};
+                else savedApiConfigs.value.push({...apiConfig.value, id: Date.now()});
+                alert("已保存");
+            };
+
+            const loadApiConfig = () => {
+                if(!selectedConfigId.value) return;
+                const c = savedApiConfigs.value.find(c => c.id === selectedConfigId.value);
+                if(c) apiConfig.value = {...c};
+            };
+
+            return {
+                currentTab, currentSubPage, currentPage, subPageTitle, tabTitles, userProfile, characters, moments, worldBooks, stickers, wallet, apiConfig, savedApiConfigs, selectedConfigId, models, sortedCharacters,
+                chatInput, activeChatChar, isTyping, inputState, msgMenu, commentInput, extInput, editMomentState, manualMemoryRange, newChar, newMoment, newCard, newStickerStr, newWB, wbFilter, filteredWorldBooks,
+                showAddCharacterModal, showAddMomentModal, showAddCardModal, showAddStickerModal, showAddWorldBookModal, showRechargeModal, showChatSettings, showExtPanel, showCodeExport, exportedCode, customCSS, rechargeTargetIndex, rechargeAmount, currentCard,
+                transferMenu, receiveTransferState, paymentVerifyState,
+                switchTab, goToSubPage, goBack, closeChat, touchStart, touchMove, touchEnd, togglePin, deleteCharacter, handleImageUpload, openChat, triggerAI, handleEnterKey, handleSendClick, handleSendDoubleClick, openMessageMenu, retractMessage, deleteMessage, quoteMessage, editMessage, extAction, processExtAction, sendSticker, manualSummarize, openAddMoment, confirmAddMoment, toggleLike, prepareComment, submitComment, editMoment, saveEditedMoment, deleteMoment, getCharName, limitCardNum, confirmAddCard, deleteCard, processRecharge, onCardScroll, confirmAddSticker, confirmAddCharacter, fetchModels, applyCSS, downloadAllCSS, addWorldBook, deleteWorldBook, deleteSelectedWB,
+                isSticker, openTransferMenu, openReceiveModal, processReceiveTransfer, refundTransfer, toggleRetracted,
+                shoppingSearch, isSearchingProducts, products, cart, showCheckoutModal, checkoutState, cartTotal, searchProducts, addToCart, removeFromCart, openCheckoutModal, processCheckout, startCheckoutProcess, submitPaymentPassword,
+                isMultiSelectMode, selectedMsgIndices, startMultiSelect, toggleSelectMsg, cancelMultiSelect, deleteSelectedMessages, clearChatHistory, clearChatAndMemory,
+                saveApiConfig, loadApiConfig
+            };
+        }
+    }).mount('#app');
+</script>
+
+<script>
+const style = document.createElement('style');
+style.textContent = `
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    
+    .button-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1000;
+    }
+    
+    .edgeone-button {
+        display: flex;
+        align-items: center;
+        background: #000000;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 20px 6px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .edgeone-button:hover {
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        transform: translateY(-1px);
+    }
+    
+
+    
+    .close-button {
+        position: absolute;
+        top: 2px;
+        right: 4px;
+        width: 14px;
+        height: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #888888;
+        font-size: 10px;
+        cursor: pointer;
+        opacity: 1;
+        z-index: 1001;
+    }
+`;
+
+document.head.appendChild(style);
+
+const buttonContainer = document.createElement('div');
+buttonContainer.className = 'button-container';
+
+const closeButton = document.createElement('div');
+closeButton.className = 'close-button';
+closeButton.textContent = '×';
+
+const edgeoneButton = document.createElement('button');
+edgeoneButton.className = 'edgeone-button';
+
+// 创建带有不同颜色的文本
+const useText = document.createElement('span');
+useText.textContent = '使用 ';
+useText.style.color = '#888888';
+
+const pageText = document.createElement('span');
+pageText.textContent = 'Pages';
+pageText.style.color = '#ffffff';
+pageText.style.marginLeft = '2px';
+pageText.style.marginRight = '2px';
+
+const deployText = document.createElement('span');
+deployText.textContent = ' 部署';
+deployText.style.color = '#888888';
+
+edgeoneButton.appendChild(useText);
+edgeoneButton.appendChild(pageText);
+edgeoneButton.appendChild(deployText);
+
+buttonContainer.appendChild(closeButton);
+buttonContainer.appendChild(edgeoneButton);
+
+document.body.appendChild(buttonContainer);
+
+closeButton.addEventListener('click', function (e) {
+  e.stopPropagation();
+  buttonContainer.style.display = 'none';
+});
+
+edgeoneButton.addEventListener('click', function () {
+  window.open('https://pages.edgeone.ai/zh/document/pages-mcp', '_blank');
+});
+
+(function loadGoogleAnalytics() {
+  const GA_ID = 'G-MBR88GEWNE';
+
+  if (!GA_ID) {
+    console.warn('Google Analytics ID is not defined');
+    return;
+  }
+
+  function createAnalyticsScripts() {
+    const script1 = document.createElement('script');
+    script1.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+    script1.async = true;
+
+    const script2 = document.createElement('script');
+    script2.textContent =
+      'window.dataLayer = window.dataLayer || [];' +
+      'function gtag(){dataLayer.push(arguments);}' +
+      'gtag("js", new Date());' +
+      'gtag("config", "' +
+      GA_ID +
+      '");';
+
+    try {
+      document.head.appendChild(script1);
+      document.head.appendChild(script2);
+    } catch (err) {
+      console.error('Failed to load Google Analytics:', err);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', createAnalyticsScripts);
+  } else {
+    createAnalyticsScripts();
+  }
+})();
+
+
+</script>
+</body>
+</html>
